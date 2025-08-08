@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Planner</title>
+    
+    <!-- Rimuoviamo i vecchi temi e aggiungiamo un nuovo font da Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Il nostro stile personalizzato -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Libreria per i grafici -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Usiamo la classe 'container' per centrare e 'glass-card' per l'effetto -->
+    <main class="container">
+        <header>
+            <h1>Il Nostro Matrimonio</h1>
+        </header>
+
+        <section class="dashboard">
+            <div class="glass-card">
+                <h2>Budget Totale</h2>
+                <p>€ {{ "%.2f"|format(budget_totale) }}</p>
+            </div>
+            <div class="glass-card speso">
+                <h2>Speso</h2>
+                <p>€ {{ "%.2f"|format(speso_totale) }}</p>
+            </div>
+            <div class="glass-card rimanente">
+                <h2>Rimanente</h2>
+                <p>€ {{ "%.2f"|format(rimanente) }}</p>
+            </div>
+        </section>
+
+        <section class="contenuti">
+            <div class="glass-card">
+                <h2>Aggiungi Spesa</h2>
+                <form action="/aggiungi" method="post">
+                    <input type="text" name="descrizione" placeholder="Descrizione" required>
+                    <input type="number" step="0.01" name="importo" placeholder="Importo" required>
+                    <select name="categoria" required>
+                        <option value="" disabled selected>-- Seleziona Categoria --</option>
+                        <option value="Location">Location e Catering</option>
+                        <option value="Fiori">Fiori e Addobbi</option>
+                        <option value="Fotografo">Fotografo e Video</option>
+                        <option value="Abbigliamento">Abbigliamento</option>
+                        <option value="Musica">Musica</option>
+                        <option value="Burocrazia">Burocrazia e Tasse</option>
+                        <option value="Altro">Altro</option>
+                    </select>
+                    <button type="submit">Aggiungi</button>
+                </form>
+            </div>
+
+            <div class="glass-card">
+                <h2>Spese per Categoria</h2>
+                <canvas id="graficoTorta" style="max-height: 280px;"></canvas>
+            </div>
+        </section>
+        
+        <section class="glass-card">
+            <h2>Dettaglio Spese</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Descrizione</th>
+                        <th>Importo</th>
+                        <th>Categoria</th>
+                        <th>Data</th>
+                        <th>Azione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for spesa in spese %}
+                    <tr>
+                        <td>{{ spesa['descrizione'] }}</td>
+                        <td class="importo">€ {{ "%.2f"|format(spesa['importo']) }}</td>
+                        <td>{{ spesa['categoria'] }}</td>
+                        <td>{{ spesa['data'].split(' ')[0] }}</td>
+                        <td><a href="/elimina/{{ spesa['id'] }}" class="delete-btn">🗑️</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+    
+    <script>
+        const datiGrafico = {{ dati_grafico|safe }};
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+</body>
+</html>

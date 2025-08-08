@@ -1,0 +1,164 @@
+/* --- IMPOSTAZIONI GLOBALI E SFONDO --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    color: #f0f0f0;
+    min-height: 100vh;
+    
+    /* Lo sfondo è FONDAMENTALE. Usiamo un gradiente animato. */
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 45s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 2rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 600;
+}
+
+/* --- IL VETRO: LA CLASSE 'glass-card' --- */
+.glass-card {
+    /* 1. Trasparenza */
+    background: rgba(255, 255, 255, 0.1);
+    
+    /* 2. Sfocatura dello sfondo (la magia!) */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px); /* Per compatibilità con Safari */
+    
+    /* 3. Bordo sottile */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    /* 4. Ombra per la profondità */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+    
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* --- LAYOUT E STILI SPECIFICI --- */
+h2 {
+    font-weight: 400;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    text-align: center;
+}
+
+.dashboard p {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+.speso p { color: #ff8a8a; }
+.rimanente p { color: #8aff94; }
+
+.contenuti {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Adattiamo gli elementi del form allo stile vetro */
+form { display: flex; flex-direction: column; gap: 1rem; }
+
+input, select {
+    width: 100%;
+    padding: 0.8rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    outline: none;
+}
+
+input::placeholder { color: rgba(255, 255, 255, 0.5); }
+
+select option {
+    background-color: #2c3e50; /* Sfondo scuro per le opzioni */
+    color: #fff;
+}
+
+button {
+    padding: 0.8rem;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Stile per la tabella */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+th {
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.importo { text-align: right; font-weight: 600; }
+.delete-btn { text-decoration: none; font-size: 1.2rem; opacity: 0.7; transition: opacity 0.2s; }
+.delete-btn:hover { opacity: 1; }
+
+/* Responsive per schermi piccoli */
+@media (max-width: 900px) {
+    .contenuti { grid-template-columns: 1fr; }
+}
+
+/* NUOVA CLASSE per centrare il contenuto */
+.centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
