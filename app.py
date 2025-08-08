@@ -109,6 +109,15 @@ def index():
         imp = spesa['importo']
         spese_per_categoria[cat] = spese_per_categoria.get(cat, 0) + imp
 
+    # Preparazione dati per il grafico (spese per categoria)
+    spese_per_categoria = {}
+    for spesa in spese:
+        cat = spesa['categoria']
+        imp = spesa['importo']
+        spese_per_categoria[cat] = spese_per_categoria.get(cat, 0) + imp
+
+    # AGGIUNGI QUESTA RIGA PER IL DEBUG
+    print("Dati per il grafico inviati:", spese_per_categoria)
     return render_template(
         'index.html',
         spese=spese,
