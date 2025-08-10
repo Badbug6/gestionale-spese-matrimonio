@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Categorie</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Gestione Categorie</h1>
+        <a href="{{ url_for('index') }}" style="color: #fff; text-decoration: none; background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 8px;">Torna alla Home</a>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="contenuti">
+        <div class="glass-card">
+            <h2>Aggiungi Nuova Categoria</h2>
+            <form action="{{ url_for('add_category') }}" method="post">
+                <input type="text" name="name" placeholder="Nome nuova categoria" required>
+                <button type="submit">Aggiungi</button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h2>Categorie Esistenti</h2>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table>
+                    <tbody>
+                    {% for cat in categories %}
+                        <tr>
+                            <td id="cat-name-{{ cat.id }}">{{ cat.name }}</td>
+                            <td id="cat-form-{{ cat.id }}" style="display: none;">
+                                <form action="/update_category/{{ cat.id }}" method="post" style="display: flex; gap: 0.5rem;">
+                                    <input type="text" name="new_name" value="{{ cat.name }}" required>
+                                    <button type="submit">Salva</button>
+                                </form>
+                            </td>
+                            <td style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <!-- ★★★ CORREZIONE QUI ★★★ -->
+                                <a href="#" class="edit-btn" onclick="event.preventDefault(); toggleEdit({{ cat.id }})">✏️</a>
+                                <a href="/delete_category/{{ cat.id }}" class="delete-btn" onclick="return confirm('Sei sicuro? La categoria verrà eliminata solo se non è utilizzata da nessuna spesa.')">🗑️</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // ★★★ FUNZIONE JAVASCRIPT MIGLIORATA ★★★
+    function toggleEdit(id) {
+        var nameEl = document.getElementById('cat-name-' + id);
+        var formEl = document.getElementById('cat-form-' + id);
+
+        // Controlla se il form è nascosto, e in tal caso lo mostra
+        if (formEl.style.display === 'none') {
+            nameEl.style.display = 'none';
+            formEl.style.display = 'table-cell'; // O 'block', ma 'table-cell' mantiene l'allineamento
+            formEl.querySelector('input').focus(); // Mette il cursore nel campo, comodo!
+        } else {
+            // Altrimenti, lo nasconde e rimostra il nome
+            nameEl.style.display = 'table-cell';
+            formEl.style.display = 'none';
+        }
+    }
+</script>
+</body>
+</html>
