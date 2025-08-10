@@ -14,7 +14,14 @@
     <main class="container">
         <header>
             <h1>Il Nostro Matrimonio</h1>
+            {% if user %}
+            <div class="user-info" style="margin: 1rem 0; font-size: 1.1em;">
+                Utente: <strong>{{ user.username }}</strong> — Ruolo: <strong>{% if user.is_admin %}Amministratore{% else %}Utente{% endif %}</strong>
+                <a href="{{ url_for('logout') }}" class="btn-secondary" style="margin-left: 1rem;">Logout</a>
+            </div>
+            {% endif %}
             <a href="{{ url_for('categories_page') }}" class="btn-secondary" style="margin-top: 1rem;">Gestisci Categorie</a>
+            <a href="{{ url_for('manage_users') }}" class="btn-secondary" style="margin-top: 1rem; margin-left: 1rem;">Gestisci Utenti</a>
         </header>
 
         <section class="dashboard">
@@ -112,12 +119,12 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // ★★★ IL MODO CORRETTO DI PASSARE I DATI ★★★
-            // Passiamo l'intero oggetto 'state' da Python e lo convertiamo in un oggetto JavaScript valido.
-            const initialState = {{ state | tojson | safe }};
-            updateUI(initialState);
-        });
+    </script>
+    <script>
+        // Passiamo l'intero oggetto 'state' da Python e lo convertiamo in un oggetto JavaScript valido.
+        const initialState = {{ state | tojson | safe }};
+        updateUI(initialState);
+    </script>
     </script>
 </body>
 </html>
