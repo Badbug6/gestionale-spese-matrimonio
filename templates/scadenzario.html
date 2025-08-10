@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scadenzario e Compiti</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="container">
+    <header style="margin-bottom: 2rem;">
+        <a href="{{ url_for('index') }}" class="btn-secondary">&larr; Torna alla Home</a>
+        <h1 style="margin-top: 1rem;">Scadenzario e Compiti</h1>
+    </header>
+
+    <!-- Messaggi Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Form per aggiungere nuova scadenza -->
+    <section class="glass-card mb-4">
+        <h2>Aggiungi Nuova Scadenza/Compito</h2>
+        <form action="{{ url_for('add_scadenza') }}" method="POST" class="add-form">
+            <input type="text" name="descrizione" placeholder="Descrizione del compito" required>
+            <input type="date" name="data_scadenza" required>
+            <select name="spesa_associata_id">
+                <option value="">-- Associa a Spesa (Opzionale) --</option>
+                {% for spesa in spese_disponibili %}
+                <option value="{{ spesa.id }}">{{ spesa.descrizione }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Aggiungi</button>
+        </form>
+    </section>
+
+    <!-- Lista scadenze -->
+    <section class="glass-card">
+        <h2>Elenco Scadenze</h2>
+        <ul class="scadenzario-list">
+            {% for scadenza in scadenze %}
+            <li class="scadenza-item {% if scadenza.stato == 'Completato' %}completato{% endif %}">
+                <span class="scadenza-text">
+                    <strong>{{ scadenza.descrizione }}</strong> - 
+                    Scadenza: {{ scadenza.data_scadenza }}
+                </span>
+                <div class="scadenza-actions">
+                    <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="btn-status">
+                        {% if scadenza.stato == 'Completato' %}✔{% else %}⚪{% endif %}
+                    </a>
+                    <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="btn-delete" onclick="return confirm('Sei sicuro di voler eliminare questa scadenza?')">🗑️</a>
+                </div>
+            </li>
+            {% else %}
+            <li class="scadenza-item">Nessuna scadenza inserita.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettaglio Spesa: {{ spesa.descrizione }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="container">
+    <header style="margin-bottom: 2rem;">
+        <a href="{{ url_for('index') }}" class="btn-secondary">&larr; Torna alla Home</a>
+        <h1 style="margin-top: 1rem;">Dettaglio: {{ spesa.descrizione }}</h1>
+    </header>
+    
+    <!-- Messaggi Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Riepilogo Finanziario -->
+    <section class="dashboard">
+        <div class="glass-card"><h2>Costo Totale</h2><p>€ {{ "%.2f"|format(spesa.importo) }}</p></div>
+        <div class="glass-card speso"><h2>Totale Pagato</h2><p>€ {{ "%.2f"|format(totale_pagato) }}</p></div>
+        <div class="glass-card rimanente"><h2>Ancora da Pagare</h2><p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p></div>
+    </section>
+
+    <!-- Form per aggiungere acconto -->
+    <section class="glass-card">
+        <h2>Registra un Acconto/Pagamento</h2>
+        <form action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}" method="POST" class="add-form">
+            <input type="number" step="0.01" class="form-control" name="importo_pagato" placeholder="Importo Pagato" required>
+            <input type="date" class="form-control" name="data_pagamento" required>
+            <input type="text" class="form-control" name="note" placeholder="Note (es. Acconto, Saldo)">
+            <button type="submit" class="btn-primary">Registra Pagamento</button>
+        </form>
+    </section>
+
+    <!-- Storico Pagamenti -->
+    <section class="glass-card">
+        <h2>Storico Pagamenti</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Importo</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pagamento in pagamenti %}
+                <tr>
+                    <td>{{ pagamento.data_pagamento }}</td>
+                    <td class="importo">€ {{ "%.2f"|format(pagamento.importo_pagato) }}</td>
+                    <td>{{ pagamento.note }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center;">Nessun pagamento registrato.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>
