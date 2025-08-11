@@ -1,198 +1,175 @@
-/* --- IMPOSTAZIONI GLOBALI E SFONDO --- */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* Stili di base e Glassmorphism */
+:root {
+    --primary-color: #ff8a80;
+    --secondary-color: #8c9eff;
+    --text-color: #ecf0f1;
 }
-
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 body {
     font-family: 'Poppins', sans-serif;
-    color: #f0f0f0;
-    min-height: 100vh;
-    
-    /* Lo sfondo è FONDAMENTALE. Usiamo un gradiente animato. */
+    color: var(--text-color);
+    line-height: 1.6;
     background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
     background-size: 400% 400%;
     animation: gradientBG 25s ease infinite;
 }
+.container { 
+    max-width: 1200px; 
+    margin: 2rem auto; 
+    padding: 2rem; 
+}
+header { 
+    text-align: center; 
+    margin-bottom: 2rem; 
+}
+h1, h2 { 
+    font-weight: 600; 
+    margin-bottom: 1rem; 
+}
+.glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    container-type: inline-size;
+}
 
+/* Layout Sezioni */
+.dashboard { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 1.5rem; 
+}
+.dashboard .glass-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+}
+.dashboard .glass-card h2, 
+.dashboard .glass-card p {
+    margin: 0;
+}
+.dashboard p {
+    font-size: clamp(1.1rem, 13cqw, 2rem);
+    font-weight: 600;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+}
+.speso p { color: #ff6b6b; }
+.rimanente p { color: #51cf66; }
+.contenuti { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 2rem; 
+    align-items: start; 
+}
+.add-form { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1rem; 
+}
+input, select {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 1rem;
+}
+select { color: #ccc; }
+option { color: #000; }
+::placeholder { color: rgba(236, 240, 241, 0.7); }
+
+/* Stili Bottoni */
+button {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s;
+    font-weight: 600;
+}
+.add-form button[type="submit"] {
+    background: rgba(255, 255, 255, 0.15); 
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+.add-form button[type="submit"]:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.02);
+}
+.btn-secondary {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+.btn-secondary:hover { background-color: rgba(255, 255, 255, 0.25); }
+
+/* Stili Tabella */
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+th, td { 
+    padding: 1rem; 
+    text-align: left; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
+}
+th { font-weight: 600; }
+td.importo, td.importo-pagato, td.importo-rimanente { text-align: right; }
+.actions a { 
+    text-decoration: none; 
+    font-size: 1.2rem; 
+    margin: 0 0.5rem; 
+}
+
+/* Stili Header e Navigazione */
+.user-info { margin-bottom: 1rem; }
+.main-nav { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
+
+/* Stili per Scadenzario e Messaggi */
+.flash-message { padding: 1rem; margin-bottom: 1rem; border-radius: 8px; color: #fff; }
+.flash-message.success { background-color: rgba(40, 167, 69, 0.7); border: 1px solid rgba(40, 167, 69, 1); }
+.flash-message.error { background-color: rgba(220, 53, 69, 0.7); border: 1px solid rgba(220, 53, 69, 1); }
+.scadenzario-list { list-style: none; padding: 0; }
+.scadenza-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.scadenza-item:last-child { border-bottom: none; }
+.scadenza-item.completato .scadenza-text { text-decoration: line-through; opacity: 0.6; }
+.scadenza-actions a { margin-left: 1rem; text-decoration: none; font-size: 1.2rem; }
+
+/* Stili FullCalendar */
+.calendar-container { padding: 1.5rem 2rem; }
+#calendar { color: #e0e0e0; }
+.fc .fc-button-primary { background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; transition: background-color 0.3s; }
+.fc .fc-button-primary:hover, .fc .fc-button-primary:active { background-color: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.4); }
+.fc .fc-daygrid-day.fc-day-today { background-color: rgba(135, 206, 250, 0.1); }
+.fc-toolbar-title { font-size: 1.5em; color: #fff; }
+.fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #fff; text-decoration: none; }
+.fc-h-event { border: 1px solid rgba(0, 0, 0, 0.2) !important; background-color: rgba(54, 162, 235, 0.7) !important; }
+.fc-event { cursor: pointer; transition: opacity 0.3s; }
+.fc-event:hover { opacity: 0.8; }
+
+/* Animazione per lo sfondo */
 @keyframes gradientBG {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
-}
-
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 2rem;
-}
-
-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-header h1 {
-    font-size: 3rem;
-    font-weight: 600;
-}
-
-/* --- IL VETRO: LA CLASSE 'glass-card' --- */
-.glass-card {
-    /* 1. Trasparenza */
-    background: rgba(255, 255, 255, 0.1);
-    
-    /* 2. Sfocatura dello sfondo (la magia!) */
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px); /* Per compatibilità con Safari */
-    
-    /* 3. Bordo sottile */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    
-    /* 4. Ombra per la profondità */
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
-    
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-/* --- LAYOUT E STILI SPECIFICI --- */
-h2 {
-    font-weight: 400;
-    margin-bottom: 1rem;
-    opacity: 0.8;
-}
-
-.dashboard {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    text-align: center;
-}
-
-.dashboard p {
-    font-size: 2.5rem;
-    font-weight: 600;
-}
-
-.speso p { color: #ff8a8a; }
-.rimanente p { color: #8aff94; }
-
-.contenuti {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-}
-
-/* Adattiamo gli elementi del form allo stile vetro */
-form { display: flex; flex-direction: column; gap: 1rem; }
-
-input, select {
-    width: 100%;
-    padding: 0.8rem;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    outline: none;
-}
-
-input::placeholder { color: rgba(255, 255, 255, 0.5); }
-
-select option {
-    background-color: #2c3e50; /* Sfondo scuro per le opzioni */
-    color: #fff;
-}
-
-button {
-    padding: 0.8rem;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-button:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-/* Stile per la tabella */
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 0.8rem;
-    text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-th {
-    font-weight: 600;
-    opacity: 0.8;
-}
-
-tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.importo { text-align: right; font-weight: 600; }
-.delete-btn { text-decoration: none; font-size: 1.2rem; opacity: 0.7; transition: opacity 0.2s; }
-.delete-btn:hover { opacity: 1; }
-
-/* Responsive per schermi piccoli */
-@media (max-width: 900px) {
-    .contenuti { grid-template-columns: 1fr; }
-}
-
-/* NUOVA CLASSE per centrare il contenuto */
-.centered-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-}
-.edit-btn { text-decoration: none; font-size: 1.2rem; opacity: 0.7; transition: opacity 0.2s; color: #a2d2ff; }
-.edit-btn:hover { opacity: 1; }
-/* Stile per i messaggi flash */
-.flash {
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    border-radius: 8px;
-    color: #fff;
-    font-weight: 600;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(5px);
-}
-.flash.error { background-color: rgba(217, 83, 79, 0.7); }
-.flash.success { background-color: rgba(92, 184, 92, 0.7); }
-/* Stile per un pulsante secondario, meno impattante del principale */
-.btn-secondary {
-    display: inline-block;
-    padding: 0.6rem 1.2rem;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.25);
 }

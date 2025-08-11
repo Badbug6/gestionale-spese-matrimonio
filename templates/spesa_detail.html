@@ -16,7 +16,6 @@
         <h1 style="margin-top: 1rem;">Dettaglio: {{ spesa.descrizione }}</h1>
     </header>
     
-    <!-- Messaggi Flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -25,34 +24,27 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Riepilogo Finanziario -->
     <section class="dashboard">
         <div class="glass-card"><h2>Costo Totale</h2><p>€ {{ "%.2f"|format(spesa.importo) }}</p></div>
         <div class="glass-card speso"><h2>Totale Pagato</h2><p>€ {{ "%.2f"|format(totale_pagato) }}</p></div>
         <div class="glass-card rimanente"><h2>Ancora da Pagare</h2><p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p></div>
     </section>
 
-    <!-- Form per aggiungere acconto -->
     <section class="glass-card">
         <h2>Registra un Acconto/Pagamento</h2>
         <form action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}" method="POST" class="add-form">
-            <input type="number" step="0.01" class="form-control" name="importo_pagato" placeholder="Importo Pagato" required>
-            <input type="date" class="form-control" name="data_pagamento" required>
-            <input type="text" class="form-control" name="note" placeholder="Note (es. Acconto, Saldo)">
+            <input type="number" step="0.01" name="importo_pagato" placeholder="Importo Pagato" required>
+            <input type="date" name="data_pagamento" required>
+            <input type="text" name="note" placeholder="Note (es. Acconto, Saldo)">
             <button type="submit" class="btn-primary">Registra Pagamento</button>
         </form>
     </section>
 
-    <!-- Storico Pagamenti -->
     <section class="glass-card">
         <h2>Storico Pagamenti</h2>
         <table>
             <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Importo</th>
-                    <th>Note</th>
-                </tr>
+                <tr><th>Data</th><th>Importo</th><th>Note</th></tr>
             </thead>
             <tbody>
                 {% for pagamento in pagamenti %}
@@ -62,9 +54,7 @@
                     <td>{{ pagamento.note }}</td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="3" style="text-align: center;">Nessun pagamento registrato.</td>
-                </tr>
+                <tr><td colspan="3" style="text-align: center;">Nessun pagamento registrato.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

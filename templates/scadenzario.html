@@ -16,7 +16,6 @@
         <h1 style="margin-top: 1rem;">Scadenzario e Compiti</h1>
     </header>
 
-    <!-- Messaggi Flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -25,7 +24,6 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Form per aggiungere nuova scadenza -->
     <section class="glass-card mb-4">
         <h2>Aggiungi Nuova Scadenza/Compito</h2>
         <form action="{{ url_for('add_scadenza') }}" method="POST" class="add-form">
@@ -41,7 +39,6 @@
         </form>
     </section>
 
-    <!-- Lista scadenze -->
     <section class="glass-card">
         <h2>Elenco Scadenze</h2>
         <ul class="scadenzario-list">
@@ -52,10 +49,10 @@
                     Scadenza: {{ scadenza.data_scadenza }}
                 </span>
                 <div class="scadenza-actions">
-                    <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="btn-status">
+                    <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="btn-status" title="Cambia Stato">
                         {% if scadenza.stato == 'Completato' %}✔{% else %}⚪{% endif %}
                     </a>
-                    <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="btn-delete" onclick="return confirm('Sei sicuro di voler eliminare questa scadenza?')">🗑️</a>
+                    <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="btn-delete" title="Elimina" onclick="return confirm('Sei sicuro?')">🗑️</a>
                 </div>
             </li>
             {% else %}
