@@ -3,40 +3,29 @@
 {% block title %}Scadenzario{% endblock %}
 
 {% block scripts %}
-    <!-- 1. Includiamo i file di FullCalendar -->
+    <!-- Includiamo i file di FullCalendar -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <script>
-        // 2. Script di inizializzazione di FullCalendar
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
-                // Impostazioni di base
-                initialView: 'dayGridMonth', // Vista mensile di default
-                locale: 'it', // Localizzazione in italiano per giorni e mesi
-                height: 'auto', // L'altezza si adatta al contenitore
-
-                // Header con i pulsanti di navigazione
+                initialView: 'dayGridMonth',
+                locale: 'it',
+                height: 'auto',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,listWeek' // Viste: mese, settimana, elenco
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
                 },
-
-                // Eventi caricati dal nostro endpoint API
                 events: '/api/scadenze',
-
-                // Gestione del click su un evento
                 eventClick: function(info) {
                     if (info.event.url) {
-                        // Se l'evento ha un URL, apri quel link
                         window.location.href = info.event.url;
-                        info.jsEvent.preventDefault(); // Previene il comportamento di default
+                        info.jsEvent.preventDefault();
                     }
                 }
             });
-
-            // Renderizza il calendario
             calendar.render();
         });
     </script>
@@ -45,7 +34,7 @@
 {% block content %}
 <div class="calendar-view-container">
     
-    <!-- Pannello di Sinistra: Form per aggiungere scadenze -->
+    <!-- Pannello di Sinistra: Form e Lista -->
     <div class="list-panel">
         <div class="panel">
             <h2>Aggiungi Scadenza</h2>
@@ -87,15 +76,16 @@
                         <tr>
                             <td>
                                 {% if scadenza.spesa_associata_id %}
-                                    <a href="{{ url_for('spesa_detail', spesa_id=scadenza.spesa_associata_id) }}">{{ scadenza.descrizione }}</a>
+                                    <!-- --- CORREZIONE APPLICATA QUI --- -->
+                                    <a href="{{ url_for('edit_spesa', id=scadenza.spesa_associata_id) }}">{{ scadenza.descrizione }}</a>
                                 {% else %}
                                     {{ scadenza.descrizione }}
                                 {% endif %}
                             </td>
                             <td>{{ scadenza.stato }}</td>
                             <td class="action-buttons">
-                                <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="edit-btn">✓</a>
-                                <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="delete-btn">X</a>
+                                <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="edit-btn" title="Cambia Stato">✓</a>
+                                <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="delete-btn" title="Elimina">X</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -107,7 +97,6 @@
 
     <!-- Pannello di Destra: Calendario -->
     <div class="calendar-panel panel">
-        <!-- 3. Contenitore dove verrà renderizzato il calendario -->
         <div id="calendar"></div>
     </div>
 

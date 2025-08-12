@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promemoria Scadenze</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap');
+        body { margin: 0; padding: 0; background-color: #f4f4f4; }
+        table { border-spacing: 0; }
+        td { padding: 0; }
+        img { border: 0; }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #e73c7e; background-image: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);">
+    
+    <center style="width: 100%; table-layout: fixed; background-color: #e73c7e; background-image: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); padding: 40px 0;">
+        
+        <table width="100%" style="max-width: 600px; border-spacing: 0; font-family: 'Poppins', Arial, sans-serif; background-color: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 15px;">
+            
+            <!-- Header -->
+            <tr>
+                <td style="padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.3);">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff;">Wedding Planner</h1>
+                </td>
+            </tr>
+            
+            <!-- Corpo del Messaggio -->
+            <tr>
+                <td style="padding: 30px;">
+                    <!-- --- CORREZIONE APPLICATA QUI: Stile applicato direttamente ad ogni tag --- -->
+                    <h2 style="margin-top: 0; font-size: 22px; font-weight: 500; color: #333333;">Promemoria Scadenze</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #333333;">
+                        Ciao {{ user.username }}!
+                    </p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #333333;">
+                        Ecco un promemoria per le scadenze importanti in arrivo tra una settimana:
+                    </p>
+                    
+                    <table width="100%" style="border-spacing: 0; margin-top: 20px; font-size: 16px;">
+                        {% for scadenza in scadenze %}
+                        <tr>
+                            <td style="padding: 12px 15px; background-color: rgba(0,0,0,0.05); border-radius: 8px; border-bottom: 3px solid transparent;">
+                                <strong style="font-weight: 500; color: #222222;">{{ scadenza.descrizione }}</strong><br>
+                                <span style="font-size: 14px; color: #555555;">Scade il: {{ scadenza.data_scadenza }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    
+                    <p style="font-size: 16px; line-height: 1.6; margin-top: 30px; color: #333333;">
+                        Buona pianificazione!
+                    </p>
+                </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+                <td style="padding: 20px; text-align: center; font-size: 12px; color: #ffffff; opacity: 0.8;">
+                    <p style="margin: 0;">Gestionale Spese Matrimonio &copy; {{ now.year }}</p>
+                </td>
+            </tr>
+        </table>
+    </center>
+</body>
+</html>

@@ -42,7 +42,13 @@
         <p>Invia un'email di prova al tuo indirizzo email di amministratore per verificare che le impostazioni siano corrette.</p>
         <button type="submit" class="edit-btn">Invia Email di Prova</button>
     </form>
+<hr class="section-divider">
 
+<h3>Testa Promemoria Completo</h3>
+<form action="{{ url_for('test_reminder') }}" method="post">
+    <p>Invia a tutti gli utenti un'email di promemoria di prova, usando il template grafico. <strong>Assicurati di aver creato almeno una scadenza che sia esattamente tra 7 giorni da oggi.</strong></p>
+    <button type="submit" class="edit-btn">Invia Promemoria di Prova</button>
+</form>
 </div>
 
 {% endblock %}

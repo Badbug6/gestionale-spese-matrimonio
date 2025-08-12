@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 from flask import (Flask, flash, g, jsonify, redirect, render_template, request,
                    session, url_for)
@@ -14,7 +14,6 @@ app = Flask(__name__)
 app.secret_key = 'la-mia-chiave-super-segreta-per-il-matrimonio-cambiami'
 DATABASE = 'wedding.db'
 
-# La configurazione iniziale è quasi irrilevante ora, ma la lasciamo per prassi
 app.config['MAIL_SERVER'] = ''
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USERNAME'] = ''
@@ -22,11 +21,12 @@ app.config['MAIL_PASSWORD'] = ''
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
-# Il nostro "Postino Capo" (mail) non verrà più usato per inviare, ma serve per l'estensione
 mail = Mail(app)
 scheduler = BackgroundScheduler(daemon=True)
 
 # --- FUNZIONI DB ---
+# ... (invariate)
+
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
@@ -55,6 +55,7 @@ def create_tables(db):
     cursor.execute('''CREATE TABLE IF NOT EXISTS scadenze (id INTEGER PRIMARY KEY AUTOINCREMENT, descrizione TEXT NOT NULL, data_scadenza DATE NOT NULL, stato TEXT NOT NULL DEFAULT 'Da Fare', spesa_associata_id INTEGER, FOREIGN KEY(spesa_associata_id) REFERENCES spese(id) ON DELETE SET NULL)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS pagamenti (id INTEGER PRIMARY KEY AUTOINCREMENT, spesa_id INTEGER NOT NULL, importo_pagato REAL NOT NULL, data_pagamento DATE NOT NULL, note TEXT, FOREIGN KEY(spesa_id) REFERENCES spese(id) ON DELETE CASCADE)''')
     db.commit()
+
 
 # --- FUNZIONI DI SUPPORTO ---
 def get_app_state():
@@ -85,17 +86,16 @@ def get_user_by_id(user_id):
     if not user_id: return None
     return get_db().execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
 
-# --- VERSIONE BRUTE-FORCE, MA AFFIDABILE E CORRETTA ---
-def send_email(subject, recipients, body):
+# AGGIORNATA: Ora accetta anche un corpo HTML
+def send_email(subject, recipients, text_body, html_body):
     try:
         db = get_db()
         configs = db.execute("SELECT key, value FROM config WHERE key LIKE 'SMTP_%'").fetchall()
         config_dict = {row['key']: row['value'] for row in configs}
 
         if not config_dict.get('SMTP_SERVER'):
-            return (False, "Configurazione SMTP non trovata nel database.")
+            return (False, "Configurazione SMTP non trovata.")
 
-        # Creiamo un "postino temporaneo" con le istruzioni giuste
         temp_app = Flask(__name__)
         temp_app.config['MAIL_SERVER'] = config_dict.get('SMTP_SERVER')
         temp_app.config['MAIL_PORT'] = int(config_dict.get('SMTP_PORT', 587))
@@ -107,40 +107,44 @@ def send_email(subject, recipients, body):
         temp_mail = Mail(temp_app)
 
         msg = Message(subject, sender=temp_app.config['MAIL_USERNAME'], recipients=recipients)
-        msg.body = body
+        msg.body = text_body
+        msg.html = html_body
 
-        # Usiamo il postino temporaneo per inviare
         temp_mail.send(msg)
-        
         return (True, "Email inviata con successo!")
     except Exception as e:
         print(f"Errore durante l'invio dell'email: {e}")
         return (False, f"Errore: {e}")
 
+# AGGIORNATA: Ora usa il template HTML
 def check_and_send_reminders():
     with app.app_context():
-        # ... (Questa funzione ora userà la nuova send_email e funzionerà)
         db = get_db()
         reminder_date = date.today() + timedelta(days=7)
         scadenze = db.execute("SELECT * FROM scadenze WHERE stato = 'Da Fare' AND data_scadenza = ?", (reminder_date.strftime('%Y-%m-%d'),)).fetchall()
+
         if not scadenze:
-            print(f"Scheduler: Nessuna scadenza trovata per il {reminder_date}.")
-            return
-        body_promemoria = "Ciao!\n\nEcco un promemoria per le scadenze in arrivo tra una settimana:\n\n"
-        for scadenza in scadenze:
-            body_promemoria += f"- {scadenza['descrizione']} (Scade il: {scadenza['data_scadenza']})\n"
-        body_promemoria += "\nBuona pianificazione!\nIl tuo Gestionale."
-        users = db.execute("SELECT username, email FROM users WHERE email IS NOT NULL AND email != ''").fetchall()
+            msg = f"Nessuna scadenza trovata per il {reminder_date}."
+            print(f"Scheduler: {msg}")
+            return msg
+
+        users = db.execute("SELECT * FROM users WHERE email IS NOT NULL AND email != ''").fetchall()
         if not users:
-            print("Scheduler: Nessun utente con email trovato.")
-            return
+            msg = "Nessun utente con email trovato a cui inviare promemoria."
+            print(f"Scheduler: {msg}")
+            return msg
+
         print(f"Scheduler: Trovate {len(scadenze)} scadenze. Invio promemoria a {len(users)} utenti.")
         for user in users:
             subject = f"Promemoria Scadenze Matrimonio - {user['username']}"
-            send_email(subject, [user['email']], body_promemoria)
+            html = render_template('email/reminder.html', scadenze=scadenze, user=user, now=datetime.utcnow())
+            text = f"Ciao {user['username']}! Ecco le tue scadenze in arrivo tra una settimana." # Testo fallback
+            send_email(subject, [user['email']], text, html)
+        
+        return f"Promemoria inviato a {len(users)} utenti per {len(scadenze)} scadenze."
 
 # --- ROUTES ---
-# ... (tutte le altre route rimangono invariate e corrette)
+# ... (tutte le altre route sono corrette e invariate)
 @app.route('/')
 def index():
     if not os.path.exists(DATABASE): return redirect(url_for('create_admin'))
@@ -444,18 +448,32 @@ def test_email():
         flash('L\'utente amministratore non ha un\'email registrata.', 'error')
         return redirect(url_for('settings'))
     subject = "Email di Prova - Gestionale Matrimonio"
-    body = f"Ciao {admin_user['username']}!\n\nSe hai ricevuto questa email, significa che la configurazione SMTP funziona correttamente.\n\nSaluti,\nIl tuo Gestionale."
-    success, message = send_email(subject, [recipient], body)
+    html_body = f"<h1>Ciao {admin_user['username']}!</h1><p>Se hai ricevuto questa email, significa che la configurazione SMTP funziona correttamente.</p>"
+    text_body = f"Ciao {admin_user['username']}! Se hai ricevuto questa email, significa che la configurazione SMTP funziona correttamente."
+    success, message = send_email(subject, [recipient], text_body, html_body)
     if success:
         flash(f"Email di prova inviata a {recipient}. Controlla la tua casella di posta.", 'success')
     else:
         flash(f"Impossibile inviare l'email di prova. {message}", 'error')
     return redirect(url_for('settings'))
 
+# NUOVA ROUTE PER TESTARE IL PROMEMORIA COMPLETO
+@app.route('/test_reminder', methods=['POST'])
+def test_reminder():
+    if 'user_id' not in session or not get_user_by_id(session['user_id'])['is_admin']:
+        flash('Accesso non autorizzato.', 'error')
+        return redirect(url_for('index'))
+    
+    # Eseguiamo la funzione manualmente
+    status_message = check_and_send_reminders()
+    flash(f"Test dei promemoria eseguito. Risultato: {status_message}", 'success')
+    return redirect(url_for('settings'))
+
+
 # --- AVVIO APP ---
 if __name__ == '__main__':
     with app.app_context():
-        create_tables(get_db()) # Assicura che le tabelle esistano all'avvio
+        create_tables(get_db())
     
     scheduler.add_job(id='daily_reminder_task', func=check_and_send_reminders, trigger='cron', hour=8, minute=0)
     if not scheduler.running:
