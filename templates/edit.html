@@ -1,41 +1,105 @@
 {% extends "layout.html" %}
-{% block title %}Modifica la Spesa{% endblock %}
+{% block title %}Gestione Spesa{% endblock %}
 {% block content %}
 
-<!-- Utilizziamo lo stesso contenitore delle pagine di login/setup per centrare il form -->
-<div class="auth-container panel">
-    <h2>Modifica la Spesa</h2>
+<!-- Contenitore principale a due colonne -->
+<div class="flex-container">
 
-    <!-- Il form ora invia i dati con il metodo POST -->
-    <form method="post">
-
-        <div class="form-group">
-            <label for="descrizione">Descrizione</label>
-            <input type="text" name="descrizione" id="descrizione" value="{{ spesa.descrizione }}" required>
-        </div>
-
-        <div class="form-group">
-            <label for="importo">Importo Previsto</label>
-            <!-- Usiamo il valore 'spesa.importo' per pre-compilare il campo -->
-            <input type="text" name="importo" id="importo" value="{{ spesa.importo }}" required>
-        </div>
-
-        <div class="form-group">
-            <label for="categoria">Categoria</label>
-            <select name="categoria" id="categoria" required>
-                <!-- Cicliamo tra le categorie disponibili -->
-                {% for category in categories %}
-                    <!-- Se la categoria corrisponde a quella della spesa, la pre-selezioniamo -->
+    <!-- Pannello di Sinistra: Modifica dettagli principali -->
+    <div class="panel">
+        <h2>Modifica la Spesa</h2>
+        <form method="post" action="{{ url_for('edit_spesa', id=spesa.id) }}">
+            <div class="form-group">
+                <label for="descrizione">Descrizione</label>
+                <input type="text" name="descrizione" id="descrizione" value="{{ spesa.descrizione }}" required>
+            </div>
+            <div class="form-group">
+                <label for="importo">Importo Previsto</label>
+                <input type="text" name="importo" id="importo" value="{{ spesa.importo }}" required>
+            </div>
+            <div class="form-group">
+                <label for="categoria">Categoria</label>
+                <select name="categoria" id="categoria" required>
+                    {% for category in categories %}
                     <option value="{{ category }}" {% if category == spesa.categoria %}selected{% endif %}>
                         {{ category }}
                     </option>
-                {% endfor %}
-            </select>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Salva Modifiche Dettagli</button>
+        </form>
+    </div>
+
+    <!-- Pannello di Destra: Gestione Pagamenti -->
+    <div class="panel">
+        <h2>Gestione Pagamenti</h2>
+
+        <!-- Riepilogo finanziario per questa spesa -->
+        <div class="summary-cards">
+            <div class="card">
+                <h3>Costo Previsto</h3>
+                <p>€ {{ "%.2f"|format(spesa.importo) }}</p>
+            </div>
+            <div class="card">
+                <h3>Pagato</h3>
+                <p>€ {{ "%.2f"|format(totale_pagato) }}</p>
+            </div>
+            <div class="card remaining">
+                <h3>Residuo</h3>
+                <p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p>
+            </div>
         </div>
 
-        <button type="submit">Salva Modifiche</button>
+        <hr class="section-divider">
 
-    </form>
+        <!-- Form per aggiungere un nuovo pagamento -->
+        <h4>Aggiungi Acconto</h4>
+        <form method="post" action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}">
+             <div class="form-group">
+                <label for="importo_pagato">Importo</label>
+                <input type="text" name="importo_pagato" id="importo_pagato" placeholder="Es. 500.00" required>
+            </div>
+            <div class="form-group">
+                <label for="data_pagamento">Data</label>
+                <input type="date" name="data_pagamento" id="data_pagamento" required>
+            </div>
+             <div class="form-group">
+                <label for="note">Note</label>
+                <input type="text" name="note" id="note" placeholder="Es. Acconto">
+            </div>
+            <button type="submit">Aggiungi Pagamento</button>
+        </form>
+
+        <hr class="section-divider">
+
+        <!-- Tabella con lo storico dei pagamenti -->
+        <h4>Storico Pagamenti</h4>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Importo</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pagamenti %}
+                    <tr>
+                        <td>{{ p.data_pagamento }}</td>
+                        <td>€ {{ "%.2f"|format(p.importo_pagato) }}</td>
+                        <td>{{ p.note or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 1.5rem 0;">Nessun pagamento registrato.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

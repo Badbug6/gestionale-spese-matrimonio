@@ -1,3 +1,4 @@
+/* Definizione delle variabili CSS e dell'animazione */
 :root {
     --text-color: #ffffff;
     --panel-bg: rgba(255, 255, 255, 0.1);
@@ -36,14 +37,12 @@ a {
 }
 a:hover { text-decoration: underline; }
 
-/* --- NUOVI STILI PER LE CARD DELLE CATEGORIE --- */
+/* Stili per la pagina Categorie */
 .category-cards-container {
     display: grid;
-    /* La magia della griglia responsiva: crea colonne tra 250px e 1fr */
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
 }
-
 .category-card {
     background: var(--panel-bg);
     border: 1px solid var(--panel-border);
@@ -51,66 +50,26 @@ a:hover { text-decoration: underline; }
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Spinge nome in alto e azioni in basso */
+    justify-content: space-between;
     min-height: 120px;
 }
-
-.category-card .card-form {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    gap: 1rem;
-}
-
+.category-card .card-form { display: flex; flex-direction: column; height: 100%; gap: 1rem; }
 .category-card-name {
-    /* Stile per far sembrare l'input come testo normale */
-    background: transparent !important;
-    border: 1px solid transparent !important; /* Nasconde il bordo */
-    font-size: 1.2rem !important;
-    font-weight: 500;
-    padding: 0.5rem 0.2rem !important;
-    flex-grow: 1; /* Occupa lo spazio disponibile */
-    color: var(--text-color) !important;
+    background: transparent !important; border: 1px solid transparent !important;
+    font-size: 1.2rem !important; font-weight: 500; padding: 0.5rem 0.2rem !important;
+    flex-grow: 1; color: var(--text-color) !important;
 }
-
-.category-card-name:focus {
-    /* Mostra il bordo solo quando si modifica */
-    border: 1px solid var(--panel-border) !important;
-    background: rgba(0, 0, 0, 0.2) !important;
-}
-
-.category-card .card-actions {
-    display: flex;
-    justify-content: flex-end; /* Allinea i bottoni a destra */
-    gap: 0.5rem;
-}
-
-.add-category-form {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 1rem;
-}
+.category-card-name:focus { border: 1px solid var(--panel-border) !important; background: rgba(0, 0, 0, 0.2) !important; }
+.category-card .card-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.add-category-form { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
 .add-category-form input { flex-grow: 1; }
 .add-category-form button { width: auto; flex-shrink: 0; }
-
-.section-divider {
-    border: none;
-    height: 1px;
-    background-color: var(--panel-border);
-    margin: 2rem 0;
-}
-/* Fine nuovi stili */
-
+.section-divider { border: none; height: 1px; background-color: var(--panel-border); margin: 2rem 0; }
 
 /* Header e Navigazione */
 .main-header {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.2); padding: 1rem 2rem; display: flex; justify-content: space-between;
+    align-items: center; backdrop-filter: blur(5px);
 }
 .main-header h1 a { color: var(--text-color); text-decoration: none; font-size: 1.5rem; }
 .main-header nav { display: flex; align-items: center; gap: 1.5rem; }
@@ -132,7 +91,13 @@ a:hover { text-decoration: underline; }
 .form-group label { font-weight: 500; font-size: 0.9rem; opacity: 0.9; padding-left: 0.2rem; }
 form { display: flex; flex-direction: column; gap: 1.5rem; flex-grow: 1; justify-content: center; }
 
-input[type="text"], input[type="password"], input[type="date"], input[type="number"], select {
+/* --- MODIFICA CHIAVE: Aggiunto input[type="email"] --- */
+input[type="text"],
+input[type="password"],
+input[type="email"], /* <<<<<<<<<<<<<<<< AGGIUNTO QUI */
+input[type="date"],
+input[type="number"],
+select {
     width: 100%; box-sizing: border-box; padding: 1rem; border: 1px solid var(--panel-border); border-radius: 12px;
     background: rgba(0, 0, 0, 0.2); color: var(--text-color); font-size: 1rem; font-family: 'Poppins', sans-serif;
     transition: border-color 0.3s, box-shadow 0.3s;

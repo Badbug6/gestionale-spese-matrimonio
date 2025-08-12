@@ -1,2 +1,4 @@
 flask
 waitress
+Flask-Mail
+APScheduler

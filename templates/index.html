@@ -74,7 +74,7 @@
             <tbody id="spese-table-body">
                 {% for spesa in state.spese %}
                 <tr id="spesa-{{ spesa.id }}">
-                    <td><a href="{{ url_for('spesa_detail', spesa_id=spesa.id) }}">{{ spesa.descrizione }}</a></td>
+                    <td><a href="{{ url_for('edit_spesa', id=spesa.id) }}">{{ spesa.descrizione }}</a></td>
                     <td>€ {{ "%.2f"|format(spesa.importo) }}</td>
                     <td>€ {{ "%.2f"|format(spesa.totale_pagato) }}</td>
                     <td>{{ spesa.categoria }}</td>

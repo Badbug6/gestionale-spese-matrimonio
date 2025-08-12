@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block title %}Impostazioni Email{% endblock %}
+{% block content %}
+
+<div class="panel full-width">
+    <div class="panel-header">
+        <h2>Impostazioni di Notifica Email</h2>
+    </div>
+
+    <p>Qui puoi configurare il server SMTP per l'invio delle email di promemoria a tutti gli utenti registrati. I promemoria verranno inviati per le scadenze che si avvicinano.</p>
+    <p><strong>Nota per Gmail:</strong> è consigliabile usare una "Password per le app" invece della tua password principale. Cerca "Google App Passwords" per crearne una.</p>
+
+    <hr class="section-divider">
+
+    <!-- Form per salvare le impostazioni SMTP -->
+    <form action="{{ url_for('settings') }}" method="post">
+        <h3>Configurazione Server SMTP</h3>
+        <div class="form-group">
+            <label for="smtp_server">Server SMTP</label>
+            <input type="text" name="SMTP_SERVER" id="smtp_server" value="{{ config.get('SMTP_SERVER', '') }}" placeholder="es. smtp.gmail.com">
+        </div>
+        <div class="form-group">
+            <label for="smtp_port">Porta SMTP</label>
+            <input type="number" name="SMTP_PORT" id="smtp_port" value="{{ config.get('SMTP_PORT', '587') }}" placeholder="es. 587">
+        </div>
+        <div class="form-group">
+            <label for="smtp_username">Username (indirizzo email)</label>
+            <input type="email" name="SMTP_USERNAME" id="smtp_username" value="{{ config.get('SMTP_USERNAME', '') }}" placeholder="tuo.utente@example.com">
+        </div>
+        <div class="form-group">
+            <label for="smtp_password">Password</label>
+            <input type="password" name="SMTP_PASSWORD" id="smtp_password" value="{{ config.get('SMTP_PASSWORD', '') }}">
+        </div>
+        <button type="submit">Salva Impostazioni</button>
+    </form>
+
+    <hr class="section-divider">
+
+    <!-- Form separato per il test -->
+    <h3>Testa la Configurazione</h3>
+    <form action="{{ url_for('test_email') }}" method="post">
+        <p>Invia un'email di prova al tuo indirizzo email di amministratore per verificare che le impostazioni siano corrette.</p>
+        <button type="submit" class="edit-btn">Invia Email di Prova</button>
+    </form>
+
+</div>
+
+{% endblock %}
