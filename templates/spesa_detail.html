@@ -1,64 +1,81 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dettaglio Spesa: {{ spesa.descrizione }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<main class="container">
-    <header style="margin-bottom: 2rem;">
-        <a href="{{ url_for('index') }}" class="btn-secondary">&larr; Torna alla Home</a>
-        <h1 style="margin-top: 1rem;">Dettaglio: {{ spesa.descrizione }}</h1>
-    </header>
+{% extends "layout.html" %}
+{% block title %}Dettaglio Spesa - {{ spesa.descrizione }}{% endblock %}
+{% block content %}
+
+<!-- Pannello riassuntivo in alto -->
+<div class="panel full-width">
+    <div class="panel-header">
+        <h2>Dettaglio Spesa: {{ spesa.descrizione }}</h2>
+        <a href="{{ url_for('index') }}" class="button-link" style="width: auto; padding: 0.6rem 1rem;">Torna alla Dashboard</a>
+    </div>
     
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Costo Previsto</h3>
+            <p>€ {{ "%.2f"|format(spesa.importo) }}</p>
+        </div>
+        <div class="card">
+            <h3>Totale Pagato</h3>
+            <p>€ {{ "%.2f"|format(totale_pagato) }}</p>
+        </div>
+        <div class="card remaining">
+            <h3>Da Pagare</h3>
+            <p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p>
+        </div>
+    </div>
+</div>
 
-    <section class="dashboard">
-        <div class="glass-card"><h2>Costo Totale</h2><p>€ {{ "%.2f"|format(spesa.importo) }}</p></div>
-        <div class="glass-card speso"><h2>Totale Pagato</h2><p>€ {{ "%.2f"|format(totale_pagato) }}</p></div>
-        <div class="glass-card rimanente"><h2>Ancora da Pagare</h2><p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p></div>
-    </section>
+<!-- Contenitore a due colonne -->
+<div class="flex-container">
 
-    <section class="glass-card">
-        <h2>Registra un Acconto/Pagamento</h2>
-        <form action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}" method="POST" class="add-form">
-            <input type="number" step="0.01" name="importo_pagato" placeholder="Importo Pagato" required>
-            <input type="date" name="data_pagamento" required>
-            <input type="text" name="note" placeholder="Note (es. Acconto, Saldo)">
-            <button type="submit" class="btn-primary">Registra Pagamento</button>
+    <!-- Colonna sinistra: Aggiungi un nuovo pagamento -->
+    <div class="panel">
+        <h2>Aggiungi Pagamento</h2>
+        <form action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}" method="post">
+            <div class="form-group">
+                <label for="importo_pagato">Importo Pagato</label>
+                <input type="text" name="importo_pagato" id="importo_pagato" placeholder="Es. 500.00" required>
+            </div>
+            <div class="form-group">
+                <label for="data_pagamento">Data Pagamento</label>
+                <input type="date" name="data_pagamento" id="data_pagamento" required>
+            </div>
+            <div class="form-group">
+                <label for="note">Note (Opzionale)</label>
+                <input type="text" name="note" id="note" placeholder="Es. Acconto">
+            </div>
+            <button type="submit">Registra Pagamento</button>
         </form>
-    </section>
+    </div>
 
-    <section class="glass-card">
+    <!-- Colonna destra: Storico dei pagamenti -->
+    <div class="panel">
         <h2>Storico Pagamenti</h2>
-        <table>
-            <thead>
-                <tr><th>Data</th><th>Importo</th><th>Note</th></tr>
-            </thead>
-            <tbody>
-                {% for pagamento in pagamenti %}
-                <tr>
-                    <td>{{ pagamento.data_pagamento }}</td>
-                    <td class="importo">€ {{ "%.2f"|format(pagamento.importo_pagato) }}</td>
-                    <td>{{ pagamento.note }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="3" style="text-align: center;">Nessun pagamento registrato.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-</main>
-</body>
-</html>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Importo</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pagamento in pagamenti %}
+                    <tr>
+                        <td>{{ pagamento.data_pagamento }}</td>
+                        <td>€ {{ "%.2f"|format(pagamento.importo_pagato) }}</td>
+                        <td>{{ pagamento.note or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 2rem 0;">Nessun pagamento registrato.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

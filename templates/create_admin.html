@@ -1,20 +1,20 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Crea Amministratore</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <div class="container">
-        <h2>Crea Utente Amministratore</h2>
-    <form method="post" action="{{ url_for('create_admin') }}">
-            <label for="username">Username:</label>
-            <input type="text" name="username" required>
-            <label for="password">Password:</label>
-            <input type="password" name="password" required>
-            <button type="submit">Crea Admin</button>
-        </form>
-    </div>
-</body>
-</html>
+{% extends "layout.html" %}
+{% block title %}Crea Amministratore{% endblock %}
+{% block content %}
+<div class="auth-container panel">
+    <h2>Crea Utente Amministratore</h2>
+    <p>Questo utente avrà il controllo completo del gestionale.</p>
+    
+    <form method="post">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+        <button type="submit">Crea Admin</button>
+    </form>
+</div>
+{% endblock %}

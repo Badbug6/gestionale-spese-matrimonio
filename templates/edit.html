@@ -1,31 +1,41 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modifica Spesa</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<div class="centered-container">
-    <div class="glass-card" style="max-width: 600px; width: 90%;">
-        <h2>Modifica la Spesa</h2>
-        <form action="/update/{{ spesa['id'] }}" method="post">
-            <input type="text" name="descrizione" value="{{ spesa['descrizione'] }}" required>
-            <input type="number" step="0.01" name="importo" value="{{ spesa['importo'] }}" required>
-            <select name="categoria" required>
-                {% for cat in categories %}
-                    <option value="{{ cat }}" {% if spesa.categoria == cat %}selected{% endif %}>
-                        {{ cat }}
+{% extends "layout.html" %}
+{% block title %}Modifica la Spesa{% endblock %}
+{% block content %}
+
+<!-- Utilizziamo lo stesso contenitore delle pagine di login/setup per centrare il form -->
+<div class="auth-container panel">
+    <h2>Modifica la Spesa</h2>
+
+    <!-- Il form ora invia i dati con il metodo POST -->
+    <form method="post">
+
+        <div class="form-group">
+            <label for="descrizione">Descrizione</label>
+            <input type="text" name="descrizione" id="descrizione" value="{{ spesa.descrizione }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="importo">Importo Previsto</label>
+            <!-- Usiamo il valore 'spesa.importo' per pre-compilare il campo -->
+            <input type="text" name="importo" id="importo" value="{{ spesa.importo }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="categoria">Categoria</label>
+            <select name="categoria" id="categoria" required>
+                <!-- Cicliamo tra le categorie disponibili -->
+                {% for category in categories %}
+                    <!-- Se la categoria corrisponde a quella della spesa, la pre-selezioniamo -->
+                    <option value="{{ category }}" {% if category == spesa.categoria %}selected{% endif %}>
+                        {{ category }}
                     </option>
                 {% endfor %}
             </select>
-            <button type="submit">Salva Modifiche</button>
-        </form>
-    </div>
+        </div>
+
+        <button type="submit">Salva Modifiche</button>
+
+    </form>
 </div>
-</body>
-</html>
+
+{% endblock %}

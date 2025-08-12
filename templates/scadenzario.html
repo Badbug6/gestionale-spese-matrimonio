@@ -1,65 +1,115 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scadenzario e Compiti</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-<main class="container">
-    <header style="margin-bottom: 2rem;">
-        <a href="{{ url_for('index') }}" class="btn-secondary">&larr; Torna alla Home</a>
-        <h1 style="margin-top: 1rem;">Scadenzario e Compiti</h1>
-    </header>
+{% extends "layout.html" %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+{% block title %}Scadenzario{% endblock %}
 
-    <section class="glass-card mb-4">
-        <h2>Aggiungi Nuova Scadenza/Compito</h2>
-        <form action="{{ url_for('add_scadenza') }}" method="POST" class="add-form">
-            <input type="text" name="descrizione" placeholder="Descrizione del compito" required>
-            <input type="date" name="data_scadenza" required>
-            <select name="spesa_associata_id">
-                <option value="">-- Associa a Spesa (Opzionale) --</option>
-                {% for spesa in spese_disponibili %}
-                <option value="{{ spesa.id }}">{{ spesa.descrizione }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Aggiungi</button>
-        </form>
-    </section>
+{% block scripts %}
+    <!-- 1. Includiamo i file di FullCalendar -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script>
+        // 2. Script di inizializzazione di FullCalendar
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
 
-    <section class="glass-card">
-        <h2>Elenco Scadenze</h2>
-        <ul class="scadenzario-list">
-            {% for scadenza in scadenze %}
-            <li class="scadenza-item {% if scadenza.stato == 'Completato' %}completato{% endif %}">
-                <span class="scadenza-text">
-                    <strong>{{ scadenza.descrizione }}</strong> - 
-                    Scadenza: {{ scadenza.data_scadenza }}
-                </span>
-                <div class="scadenza-actions">
-                    <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="btn-status" title="Cambia Stato">
-                        {% if scadenza.stato == 'Completato' %}✔{% else %}⚪{% endif %}
-                    </a>
-                    <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="btn-delete" title="Elimina" onclick="return confirm('Sei sicuro?')">🗑️</a>
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                // Impostazioni di base
+                initialView: 'dayGridMonth', // Vista mensile di default
+                locale: 'it', // Localizzazione in italiano per giorni e mesi
+                height: 'auto', // L'altezza si adatta al contenitore
+
+                // Header con i pulsanti di navigazione
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek' // Viste: mese, settimana, elenco
+                },
+
+                // Eventi caricati dal nostro endpoint API
+                events: '/api/scadenze',
+
+                // Gestione del click su un evento
+                eventClick: function(info) {
+                    if (info.event.url) {
+                        // Se l'evento ha un URL, apri quel link
+                        window.location.href = info.event.url;
+                        info.jsEvent.preventDefault(); // Previene il comportamento di default
+                    }
+                }
+            });
+
+            // Renderizza il calendario
+            calendar.render();
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-view-container">
+    
+    <!-- Pannello di Sinistra: Form per aggiungere scadenze -->
+    <div class="list-panel">
+        <div class="panel">
+            <h2>Aggiungi Scadenza</h2>
+            <form action="{{ url_for('add_scadenza') }}" method="post">
+                <div class="form-group">
+                    <label for="descrizione">Descrizione</label>
+                    <input type="text" name="descrizione" id="descrizione" required>
                 </div>
-            </li>
-            {% else %}
-            <li class="scadenza-item">Nessuna scadenza inserita.</li>
-            {% endfor %}
-        </ul>
-    </section>
-</main>
-</body>
-</html>
+                <div class="form-group">
+                    <label for="data_scadenza">Data Scadenza</label>
+                    <input type="date" name="data_scadenza" id="data_scadenza" required>
+                </div>
+                <div class="form-group">
+                    <label for="spesa_associata_id">Spesa Associata (Opzionale)</label>
+                    <select name="spesa_associata_id" id="spesa_associata_id">
+                        <option value="">Nessuna</option>
+                        {% for spesa in spese_disponibili %}
+                        <option value="{{ spesa.id }}">{{ spesa.descrizione }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit">Aggiungi al Calendario</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h2>Elenco Scadenze</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descrizione</th>
+                            <th>Stato</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scadenza in scadenze %}
+                        <tr>
+                            <td>
+                                {% if scadenza.spesa_associata_id %}
+                                    <a href="{{ url_for('spesa_detail', spesa_id=scadenza.spesa_associata_id) }}">{{ scadenza.descrizione }}</a>
+                                {% else %}
+                                    {{ scadenza.descrizione }}
+                                {% endif %}
+                            </td>
+                            <td>{{ scadenza.stato }}</td>
+                            <td class="action-buttons">
+                                <a href="{{ url_for('toggle_scadenza', id=scadenza.id) }}" class="edit-btn">✓</a>
+                                <a href="{{ url_for('delete_scadenza', id=scadenza.id) }}" class="delete-btn">X</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pannello di Destra: Calendario -->
+    <div class="calendar-panel panel">
+        <!-- 3. Contenitore dove verrà renderizzato il calendario -->
+        <div id="calendar"></div>
+    </div>
+
+</div>
+{% endblock %}

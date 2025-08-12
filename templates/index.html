@@ -1,144 +1,99 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wedding Planner</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Link per FullCalendar -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
-</head>
-<body>
-    <main class="container">
-        <header>
-            <h1>Il Nostro Matrimonio</h1>
-            {% if user %}
-            <div class="user-info">
-                Utente: <strong>{{ user.username }}</strong> — Ruolo: <strong>{% if user.is_admin %}Amministratore{% else %}Utente{% endif %}</strong>
-                <a href="{{ url_for('logout') }}" class="btn-secondary" style="margin-left: 1rem;">Logout</a>
-            </div>
-            {% endif %}
-            <nav class="main-nav">
-                <a href="{{ url_for('categories_page') }}" class="btn-secondary">Gestisci Categorie</a>
-                <a href="{{ url_for('scadenzario') }}" class="btn-secondary">Scadenzario</a>
-                <a href="{{ url_for('manage_users') }}" class="btn-secondary">Gestisci Utenti</a>
-            </nav>
-        </header>
+{% extends "layout.html" %}
 
-        <section class="dashboard">
-            <div class="glass-card"><h2>Budget Totale</h2><p id="budget-totale">€ 0.00</p></div>
-            <div class="glass-card speso"><h2>Pagato Finora</h2><p id="speso-effettivo">€ 0.00</p></div>
-            <div class="glass-card"><h2>Costo Previsto</h2><p id="speso-previsto">€ 0.00</p></div>
-            <div class="glass-card rimanente"><h2>Budget Rimanente</h2><p id="rimanente">€ 0.00</p></div>
-        </section>
+{% block title %}Dashboard - Gestionale Matrimonio{% endblock %}
 
-        <section class="contenuti">
-            <div class="glass-card">
-                <h2>Aggiungi Spesa</h2>
-                <form id="add-expense-form" class="add-form">
-                    <input type="text" name="descrizione" placeholder="Descrizione" required>
-                    <input type="number" step="0.01" name="importo" placeholder="Costo Totale Previsto" required>
-                    <select name="categoria" required>
-                        <option value="" disabled selected>-- Seleziona Categoria --</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat }}">{{ cat }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit">Aggiungi</button>
-                </form>
-            </div>
-            <div class="glass-card">
-                <h2>Spese per Categoria</h2>
-                <canvas id="graficoTorta" style="max-height: 280px;"></canvas>
-            </div>
-        </section>
-        
-        <!-- Sezione per il Calendario -->
-        <section class="glass-card calendar-container">
-            <h2>Calendario Scadenze</h2>
-            <div id='calendar'></div>
-        </section>
+{% block content %}
+<div class="summary-cards">
+    <div class="card">
+        <h3>Budget Totale</h3>
+        <p>€ {{ "%.2f"|format(state.budget_totale) }}</p>
+    </div>
+    <div class="card">
+        <h3>Speso Previsto</h3>
+        <p>€ {{ "%.2f"|format(state.speso_totale_previsto) }}</p>
+    </div>
+     <div class="card">
+        <h3>Speso Effettivo</h3>
+        <p>€ {{ "%.2f"|format(state.speso_totale_effettivo) }}</p>
+    </div>
+    <div class="card remaining">
+        <h3>Rimanente Previsto</h3>
+        <p>€ {{ "%.2f"|format(state.rimanente_previsto) }}</p>
+    </div>
+</div>
 
-        <section class="glass-card">
-            <h2>Dettaglio Spese</h2>
-            <table>
-                <thead><tr><th>Descrizione</th><th>Costo Previsto</th><th>Pagato</th><th>Rimanente</th><th>Categoria</th><th>Azioni</th></tr></thead>
-                <tbody id="spese-table-body"></tbody>
-            </table>
-        </section>
-    </main>
-    
+<div class="flex-container">
+
+    <div class="panel">
+        <h2>Aggiungi Spesa</h2>
+        <form id="expense-form">
+            <div class="form-group">
+                <label for="form-descrizione">Descrizione</label>
+                <input type="text" id="form-descrizione" required>
+            </div>
+            <div class="form-group">
+                <label for="form-importo">Costo Totale Previsto</label>
+                <input type="text" id="form-importo" required>
+            </div>
+            <div class="form-group">
+                <label for="form-categoria">Categoria</label>
+                <select id="form-categoria" required>
+                    <option value="" disabled selected>-- Seleziona --</option>
+                    {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Aggiungi</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Spese per Categoria</h2>
+        <div class="chart-container">
+            <canvas id="category-chart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<div class="panel full-width">
+    <h2>Elenco Spese</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrizione</th>
+                    <th>Importo Previsto</th>
+                    <th>Pagato</th>
+                    <th>Categoria</th>
+                    <th>Aggiunto da</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="spese-table-body">
+                {% for spesa in state.spese %}
+                <tr id="spesa-{{ spesa.id }}">
+                    <td><a href="{{ url_for('spesa_detail', spesa_id=spesa.id) }}">{{ spesa.descrizione }}</a></td>
+                    <td>€ {{ "%.2f"|format(spesa.importo) }}</td>
+                    <td>€ {{ "%.2f"|format(spesa.totale_pagato) }}</td>
+                    <td>{{ spesa.categoria }}</td>
+                    <td>{{ spesa.username or 'N/D' }}</td>
+                    <td class="action-buttons">
+                        <a href="{{ url_for('edit_spesa', id=spesa.id) }}" class="edit-btn">Modifica</a>
+                        <button class="delete-btn" onclick="deleteExpense({{ spesa.id }})">Elimina</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
     <script>
-        let myPieChart = null;
-        const formatCurrency = (num) => `€ ${Number(num).toFixed(2)}`;
-
-        function updateUI(data) {
-            document.getElementById('budget-totale').textContent = formatCurrency(data.budget_totale);
-            document.getElementById('speso-previsto').textContent = formatCurrency(data.speso_totale_previsto);
-            document.getElementById('speso-effettivo').textContent = formatCurrency(data.speso_totale_effettivo);
-            document.getElementById('rimanente').textContent = formatCurrency(data.rimanente_previsto);
-
-            const tableBody = document.getElementById('spese-table-body');
-            tableBody.innerHTML = '';
-            if (data.spese) {
-                data.spese.forEach(spesa => {
-                    const rimanenteDaPagare = spesa.importo - spesa.totale_pagato;
-                    const row = `<tr><td>${spesa.descrizione}</td><td class="importo">${formatCurrency(spesa.importo)}</td><td class="importo-pagato">${formatCurrency(spesa.totale_pagato)}</td><td class="importo-rimanente">${formatCurrency(rimanenteDaPagare)}</td><td>${spesa.categoria}</td><td class="actions"><a href="/spesa/${spesa.id}" class="details-btn" title="Dettagli e Acconti">📋</a><a href="/edit/${spesa.id}" class="edit-btn" title="Modifica">✏️</a><a href="#" class="delete-btn" data-id="${spesa.id}" title="Elimina">🗑️</a></td></tr>`;
-                    tableBody.innerHTML += row;
-                });
-            }
-
-            if (myPieChart) { myPieChart.destroy(); }
-            if (data.spese_per_categoria && Object.keys(data.spese_per_categoria).length > 0) {
-                const ctx = document.getElementById('graficoTorta').getContext('2d');
-                myPieChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(data.spese_per_categoria), datasets: [{ data: Object.values(data.spese_per_categoria), backgroundColor: ['rgba(255, 99, 132, 0.7)','rgba(54, 162, 235, 0.7)','rgba(255, 206, 86, 0.7)','rgba(75, 192, 192, 0.7)','rgba(153, 102, 255, 0.7)','rgba(255, 159, 64, 0.7)'], borderColor: 'rgba(255, 255, 255, 0.2)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: {color: '#fff'} } } } });
-            }
-        }
-
-        document.getElementById('add-expense-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
-            fetch('/api/add_expense', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-            .then(response => response.json()).then(newData => { updateUI(newData); this.reset(); });
-        });
-
-        document.getElementById('spese-table-body').addEventListener('click', function(event) {
-            const deleteButton = event.target.closest('.delete-btn');
-            if (deleteButton) {
-                event.preventDefault();
-                const expenseId = deleteButton.dataset.id;
-                if (confirm('Sei sicuro di voler eliminare questa spesa e tutti i suoi pagamenti?')) {
-                    fetch(`/api/delete_expense/${expenseId}`, { method: 'POST' })
-                    .then(response => response.json()).then(newData => updateUI(newData));
-                }
-            }
-        });
-        
-        const initialState = {{ state | tojson | safe }};
-        updateUI(initialState);
+        const initialState = {{ state|tojson }};
     </script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth', locale: 'it',
-                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
-                events: '/api/scadenze', height: 'auto',
-                eventClick: function(info) {
-                    if (info.event.url) {
-                        info.jsEvent.preventDefault();
-                        window.location.href = info.event.url;
-                    }
-                }
-            });
-            calendar.render();
-        });
-    </script>
-</body>
-</html>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+{% endblock %}
