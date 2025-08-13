@@ -22,8 +22,10 @@
     </div>
 </div>
 
+<!-- Contenitore Flex per il layout desktop -->
 <div class="flex-container">
 
+    <!-- Pannello Sinistro: Aggiungi Spesa -->
     <div class="panel">
         <h2>Aggiungi Spesa</h2>
         <form id="expense-form">
@@ -44,19 +46,30 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit">Aggiungi</button>
+            <button type="submit">Aggiungi Spesa</button>
         </form>
     </div>
 
+    <!-- Pannello Destro Unificato per i Grafici -->
     <div class="panel">
-        <h2>Spese per Categoria</h2>
+        <div class="chart-header">
+            <h2 id="chart-title">Spese per Categoria</h2>
+            <div class="chart-toggle-buttons">
+                <button id="btn-pie-chart" class="toggle-btn active">Per Categoria</button>
+                <button id="btn-line-chart" class="toggle-btn">Per Mese</button>
+            </div>
+        </div>
+        
+        <!-- Contenitore per i grafici (uno sarà visibile, l'altro nascosto) -->
         <div class="chart-container">
             <canvas id="category-chart"></canvas>
+            <canvas id="payments-over-time-chart" style="display: none;"></canvas>
         </div>
     </div>
 
 </div>
 
+<!-- Tabella delle spese (ora l'unico pannello full-width) -->
 <div class="panel full-width">
     <h2>Elenco Spese</h2>
     <div class="table-container">
@@ -80,7 +93,6 @@
                     <td>{{ spesa.categoria }}</td>
                     <td>{{ spesa.username or 'N/D' }}</td>
                     <td class="action-buttons">
-                        <a href="{{ url_for('edit_spesa', id=spesa.id) }}" class="edit-btn">Modifica</a>
                         <button class="delete-btn" onclick="deleteExpense({{ spesa.id }})">Elimina</button>
                     </td>
                 </tr>

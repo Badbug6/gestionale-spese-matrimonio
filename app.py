@@ -14,19 +14,15 @@ app = Flask(__name__)
 app.secret_key = 'la-mia-chiave-super-segreta-per-il-matrimonio-cambiami'
 DATABASE = 'wedding.db'
 
-app.config['MAIL_SERVER'] = ''
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = ''
-app.config['MAIL_PASSWORD'] = ''
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
+app.config.update(
+    MAIL_SERVER='', MAIL_PORT=587, MAIL_USERNAME='', MAIL_PASSWORD='',
+    MAIL_USE_TLS=True, MAIL_USE_SSL=False
+)
 
 mail = Mail(app)
 scheduler = BackgroundScheduler(daemon=True)
 
 # --- FUNZIONI DB ---
-# ... (invariate)
-
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
@@ -43,24 +39,30 @@ def close_connection(exception):
 def create_tables(db):
     cursor = db.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password_hash TEXT NOT NULL,
-                        email TEXT UNIQUE NOT NULL,
-                        is_admin INTEGER DEFAULT 0
-                    )''')
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL, email TEXT UNIQUE NOT NULL, is_admin INTEGER DEFAULT 0)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS spese (id INTEGER PRIMARY KEY AUTOINCREMENT, descrizione TEXT NOT NULL, importo REAL NOT NULL, categoria TEXT NOT NULL, user_id INTEGER, data TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS spese (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, descrizione TEXT NOT NULL, importo REAL NOT NULL,
+                        categoria TEXT NOT NULL, user_id INTEGER, data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(user_id) REFERENCES users(id))''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS scadenze (id INTEGER PRIMARY KEY AUTOINCREMENT, descrizione TEXT NOT NULL, data_scadenza DATE NOT NULL, stato TEXT NOT NULL DEFAULT 'Da Fare', spesa_associata_id INTEGER, FOREIGN KEY(spesa_associata_id) REFERENCES spese(id) ON DELETE SET NULL)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS pagamenti (id INTEGER PRIMARY KEY AUTOINCREMENT, spesa_id INTEGER NOT NULL, importo_pagato REAL NOT NULL, data_pagamento DATE NOT NULL, note TEXT, FOREIGN KEY(spesa_id) REFERENCES spese(id) ON DELETE CASCADE)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS scadenze (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, descrizione TEXT NOT NULL, data_scadenza DATE NOT NULL,
+                        importo_scadenza REAL, stato TEXT NOT NULL DEFAULT 'Da Fare', spesa_associata_id INTEGER,
+                        FOREIGN KEY(spesa_associata_id) REFERENCES spese(id) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS pagamenti (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT, spesa_id INTEGER NOT NULL,
+                        importo_pagato REAL NOT NULL, data_pagamento DATE NOT NULL, note TEXT,
+                        scadenza_associata_id INTEGER,
+                        FOREIGN KEY(spesa_id) REFERENCES spese(id) ON DELETE CASCADE,
+                        FOREIGN KEY(scadenza_associata_id) REFERENCES scadenze(id) ON DELETE SET NULL
+                    )''')
     db.commit()
-
 
 # --- FUNZIONI DI SUPPORTO ---
 def get_app_state():
     db = get_db()
-    # ... (La tua logica qui, è corretta)
     try:
         cursor = db.cursor()
         cursor.execute("SELECT value FROM config WHERE key = 'budget'")
@@ -75,9 +77,11 @@ def get_app_state():
         spese_per_categoria = {}
         for s in spese:
             spese_per_categoria[s['categoria']] = spese_per_categoria.get(s['categoria'], 0) + float(s.get('importo') or 0)
-        return {"budget_totale": budget_totale, "speso_totale_previsto": speso_totale_previsto, "speso_totale_effettivo": speso_totale_effettivo, "rimanente_previsto": rimanente_previsto, "spese": spese, "spese_per_categoria": spese_per_categoria}
-    except Exception: return {}
-
+        sql_query_pagamenti = "SELECT strftime('%Y-%m', data_pagamento) as mese, SUM(importo_pagato) as totale FROM pagamenti GROUP BY mese ORDER BY mese ASC"
+        pagamenti_mensili_rows = cursor.execute(sql_query_pagamenti).fetchall()
+        pagamenti_mensili = {'labels': [row['mese'] for row in pagamenti_mensili_rows], 'data': [row['totale'] for row in pagamenti_mensili_rows]}
+        return {"budget_totale": budget_totale, "speso_totale_previsto": speso_totale_previsto, "speso_totale_effettivo": speso_totale_effettivo, "rimanente_previsto": rimanente_previsto, "spese": spese, "spese_per_categoria": spese_per_categoria, "pagamenti_mensili": pagamenti_mensili}
+    except Exception: return {"budget_totale": 0, "speso_totale_previsto": 0, "speso_totale_effettivo": 0, "rimanente_previsto": 0, "spese": [], "spese_per_categoria": {}, "pagamenti_mensili": {'labels': [], 'data': []}}
 
 def get_user_by_username(username):
     return get_db().execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
@@ -86,64 +90,70 @@ def get_user_by_id(user_id):
     if not user_id: return None
     return get_db().execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
 
-# AGGIORNATA: Ora accetta anche un corpo HTML
 def send_email(subject, recipients, text_body, html_body):
     try:
         db = get_db()
         configs = db.execute("SELECT key, value FROM config WHERE key LIKE 'SMTP_%'").fetchall()
         config_dict = {row['key']: row['value'] for row in configs}
-
         if not config_dict.get('SMTP_SERVER'):
             return (False, "Configurazione SMTP non trovata.")
-
         temp_app = Flask(__name__)
-        temp_app.config['MAIL_SERVER'] = config_dict.get('SMTP_SERVER')
-        temp_app.config['MAIL_PORT'] = int(config_dict.get('SMTP_PORT', 587))
-        temp_app.config['MAIL_USERNAME'] = config_dict.get('SMTP_USERNAME')
-        temp_app.config['MAIL_PASSWORD'] = config_dict.get('SMTP_PASSWORD')
-        temp_app.config['MAIL_USE_TLS'] = True
-        temp_app.config['MAIL_USE_SSL'] = False
-        
+        temp_app.config.update(
+            MAIL_SERVER=config_dict.get('SMTP_SERVER'), MAIL_PORT=int(config_dict.get('SMTP_PORT', 587)),
+            MAIL_USERNAME=config_dict.get('SMTP_USERNAME'), MAIL_PASSWORD=config_dict.get('SMTP_PASSWORD'),
+            MAIL_USE_TLS=True, MAIL_USE_SSL=False
+        )
         temp_mail = Mail(temp_app)
-
         msg = Message(subject, sender=temp_app.config['MAIL_USERNAME'], recipients=recipients)
         msg.body = text_body
         msg.html = html_body
-
         temp_mail.send(msg)
         return (True, "Email inviata con successo!")
     except Exception as e:
         print(f"Errore durante l'invio dell'email: {e}")
         return (False, f"Errore: {e}")
 
-# AGGIORNATA: Ora usa il template HTML
 def check_and_send_reminders():
     with app.app_context():
         db = get_db()
         reminder_date = date.today() + timedelta(days=7)
         scadenze = db.execute("SELECT * FROM scadenze WHERE stato = 'Da Fare' AND data_scadenza = ?", (reminder_date.strftime('%Y-%m-%d'),)).fetchall()
-
-        if not scadenze:
-            msg = f"Nessuna scadenza trovata per il {reminder_date}."
-            print(f"Scheduler: {msg}")
-            return msg
-
+        if not scadenze: return f"Nessuna scadenza trovata per il {reminder_date}."
         users = db.execute("SELECT * FROM users WHERE email IS NOT NULL AND email != ''").fetchall()
-        if not users:
-            msg = "Nessun utente con email trovato a cui inviare promemoria."
-            print(f"Scheduler: {msg}")
-            return msg
-
-        print(f"Scheduler: Trovate {len(scadenze)} scadenze. Invio promemoria a {len(users)} utenti.")
+        if not users: return "Nessun utente con email trovato."
         for user in users:
             subject = f"Promemoria Scadenze Matrimonio - {user['username']}"
             html = render_template('email/reminder.html', scadenze=scadenze, user=user, now=datetime.utcnow())
-            text = f"Ciao {user['username']}! Ecco le tue scadenze in arrivo tra una settimana." # Testo fallback
+            text = "Hai delle scadenze in arrivo."
             send_email(subject, [user['email']], text, html)
-        
         return f"Promemoria inviato a {len(users)} utenti per {len(scadenze)} scadenze."
 
 # --- ROUTES ---
+@app.route('/scadenza/toggle/<int:id>')
+def toggle_scadenza(id):
+    if not session.get('user_id'): return redirect(url_for('login'))
+    db = get_db()
+    scadenza = db.execute("SELECT * FROM scadenze WHERE id = ?", (id,)).fetchone()
+    if scadenza:
+        nuovo_stato = 'Completato' if scadenza['stato'] == 'Da Fare' else 'Da Fare'
+        db.execute("UPDATE scadenze SET stato = ? WHERE id = ?", (nuovo_stato, id))
+        if scadenza['spesa_associata_id'] and scadenza['importo_scadenza']:
+            spesa_id, importo_pagamento = scadenza['spesa_associata_id'], scadenza['importo_scadenza']
+            if nuovo_stato == 'Completato':
+                pagamento_esistente = db.execute("SELECT id FROM pagamenti WHERE scadenza_associata_id = ?", (id,)).fetchone()
+                if not pagamento_esistente:
+                    db.execute(
+                        "INSERT INTO pagamenti (spesa_id, importo_pagato, data_pagamento, note, scadenza_associata_id) VALUES (?, ?, ?, ?, ?)",
+                        # --- CORREZIONE APPLICATA QUI ---
+                        (spesa_id, importo_pagamento, date.today().isoformat(), f"Pagamento da scadenza: {scadenza['descrizione']}", id)
+                    )
+                    flash(f"Pagamento di €{importo_pagamento:.2f} registrato.", 'success')
+            elif nuovo_stato == 'Da Fare':
+                db.execute("DELETE FROM pagamenti WHERE scadenza_associata_id = ?", (id,))
+                flash(f"Pagamento associato alla scadenza '{scadenza['descrizione']}' annullato.", 'info')
+        db.commit()
+    return redirect(url_for('scadenzario'))
+
 # ... (tutte le altre route sono corrette e invariate)
 @app.route('/')
 def index():
@@ -154,7 +164,6 @@ def index():
     except sqlite3.OperationalError: return redirect(url_for('create_admin'))
     if not session.get('user_id'): return redirect(url_for('login'))
     if not get_db().execute("SELECT 1 FROM config WHERE key = 'budget'").fetchone(): return redirect(url_for('setup'))
-    
     state = get_app_state()
     categories = [row['name'] for row in get_db().execute("SELECT name FROM categories ORDER BY name").fetchall()]
     user = get_user_by_id(session.get('user_id'))
@@ -233,23 +242,16 @@ def scadenzario():
 @app.route('/scadenza/add', methods=['POST'])
 def add_scadenza():
     if not session.get('user_id'): return redirect(url_for('login'))
-    descrizione, data_scadenza = request.form['descrizione'], request.form['data_scadenza']
+    descrizione = request.form['descrizione']
+    data_scadenza = request.form['data_scadenza']
     spesa_id = request.form.get('spesa_associata_id')
+    importo_str = request.form.get('importo_scadenza', '').strip().replace(',', '.')
+    importo_scadenza = float(importo_str) if importo_str else None
     db = get_db()
-    db.execute("INSERT INTO scadenze (descrizione, data_scadenza, spesa_associata_id) VALUES (?, ?, ?)",(descrizione, data_scadenza, spesa_id if spesa_id else None))
+    db.execute("INSERT INTO scadenze (descrizione, data_scadenza, importo_scadenza, spesa_associata_id) VALUES (?, ?, ?, ?)",
+               (descrizione, data_scadenza, importo_scadenza, spesa_id if spesa_id else None))
     db.commit()
     flash('Scadenza aggiunta!', 'success')
-    return redirect(url_for('scadenzario'))
-
-@app.route('/scadenza/toggle/<int:id>')
-def toggle_scadenza(id):
-    if not session.get('user_id'): return redirect(url_for('login'))
-    db = get_db()
-    scadenza = db.execute("SELECT stato FROM scadenze WHERE id = ?", (id,)).fetchone()
-    if scadenza:
-        nuovo_stato = 'Completato' if scadenza['stato'] == 'Da Fare' else 'Da Fare'
-        db.execute("UPDATE scadenze SET stato = ? WHERE id = ?", (nuovo_stato, id))
-        db.commit()
     return redirect(url_for('scadenzario'))
 
 @app.route('/scadenza/delete/<int:id>')
@@ -264,15 +266,38 @@ def delete_scadenza(id):
 @app.route('/pagamento/add/<int:spesa_id>', methods=['POST'])
 def add_pagamento(spesa_id):
     if not session.get('user_id'): return redirect(url_for('login'))
-    importo_pagato, data_pagamento, note = request.form.get('importo_pagato', '').strip().replace(',', '.'), request.form['data_pagamento'], request.form['note']
-    try: importo = float(importo_pagato)
+    importo_pagato = request.form.get('importo_pagato', '').strip().replace(',', '.')
+    data_pagamento = request.form['data_pagamento']
+    note = request.form['note']
+    try:
+        importo = float(importo_pagato)
     except ValueError:
         flash("Importo non valido.", "error")
         return redirect(url_for('edit_spesa', id=spesa_id))
-    get_db().execute("INSERT INTO pagamenti (spesa_id, importo_pagato, data_pagamento, note) VALUES (?, ?, ?, ?)", (spesa_id, importo, data_pagamento, note))
-    get_db().commit()
+    db = get_db()
+    db.execute("INSERT INTO pagamenti (spesa_id, importo_pagato, data_pagamento, note) VALUES (?, ?, ?, ?)",
+               (spesa_id, importo, data_pagamento, note))
+    db.commit()
     flash("Acconto registrato!", "success")
     return redirect(url_for('edit_spesa', id=spesa_id))
+
+@app.route('/pagamento/delete/<int:pagamento_id>', methods=['POST'])
+def delete_pagamento(pagamento_id):
+    if not session.get('user_id'): return redirect(url_for('login'))
+    db = get_db()
+    pagamento = db.execute("SELECT spesa_id, scadenza_associata_id FROM pagamenti WHERE id = ?", (pagamento_id,)).fetchone()
+    if pagamento:
+        spesa_id = pagamento['spesa_id']
+        db.execute("DELETE FROM pagamenti WHERE id = ?", (pagamento_id,))
+        if pagamento['scadenza_associata_id']:
+            db.execute("UPDATE scadenze SET stato = 'Da Fare' WHERE id = ?", (pagamento['scadenza_associata_id'],))
+            flash("Pagamento eliminato e scadenza associata riaperta.", "success")
+        else:
+            flash("Pagamento eliminato con successo.", "success")
+        db.commit()
+        return redirect(url_for('edit_spesa', id=spesa_id))
+    flash("Pagamento non trovato.", "error")
+    return redirect(url_for('index'))
 
 @app.route('/api/add_expense', methods=['POST'])
 def api_add_expense():
@@ -457,36 +482,28 @@ def test_email():
         flash(f"Impossibile inviare l'email di prova. {message}", 'error')
     return redirect(url_for('settings'))
 
-# NUOVA ROUTE PER TESTARE IL PROMEMORIA COMPLETO
 @app.route('/test_reminder', methods=['POST'])
 def test_reminder():
     if 'user_id' not in session or not get_user_by_id(session['user_id'])['is_admin']:
         flash('Accesso non autorizzato.', 'error')
         return redirect(url_for('index'))
-    
-    # Eseguiamo la funzione manualmente
     status_message = check_and_send_reminders()
     flash(f"Test dei promemoria eseguito. Risultato: {status_message}", 'success')
     return redirect(url_for('settings'))
-
 
 # --- AVVIO APP ---
 if __name__ == '__main__':
     with app.app_context():
         create_tables(get_db())
-    
     scheduler.add_job(id='daily_reminder_task', func=check_and_send_reminders, trigger='cron', hour=8, minute=0)
     if not scheduler.running:
         scheduler.start()
-    
     is_debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-
     if is_debug and not os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         print("Scheduler in attesa del riavvio del reloader Werkzeug.")
-    
     if is_debug:
         print(">>> AVVIO IN MODALITÀ SVILUPPO (DEBUG) <<<")
         app.run(host='127.0.0.1', port=5001, debug=True)
     else:
         print(f">>> AVVIO IN MODALITÀ PRODUZIONE CON WAITRESS SU http://127.0.0.1:5001 <<<")
-        serve(app, host='127.0.0.1', port=5001)
+        serve(app, host='0.0.0.0', port=5001)

@@ -2,104 +2,98 @@
 {% block title %}Gestione Spesa{% endblock %}
 {% block content %}
 
-<!-- Contenitore principale a due colonne -->
-<div class="flex-container">
+<div class="panel full-width">
 
-    <!-- Pannello di Sinistra: Modifica dettagli principali -->
-    <div class="panel">
-        <h2>Modifica la Spesa</h2>
-        <form method="post" action="{{ url_for('edit_spesa', id=spesa.id) }}">
-            <div class="form-group">
-                <label for="descrizione">Descrizione</label>
-                <input type="text" name="descrizione" id="descrizione" value="{{ spesa.descrizione }}" required>
-            </div>
-            <div class="form-group">
-                <label for="importo">Importo Previsto</label>
-                <input type="text" name="importo" id="importo" value="{{ spesa.importo }}" required>
-            </div>
-            <div class="form-group">
-                <label for="categoria">Categoria</label>
-                <select name="categoria" id="categoria" required>
-                    {% for category in categories %}
-                    <option value="{{ category }}" {% if category == spesa.categoria %}selected{% endif %}>
-                        {{ category }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit">Salva Modifiche Dettagli</button>
-        </form>
+    <!-- 
+      CORREZIONE 1: Aggiunto un .panel-header per separare
+      correttamente l'intestazione dal resto del contenuto.
+    -->
+    <div class="panel-header">
+        <h2>Gestione Spesa: {{ spesa.descrizione }}</h2>
+        <a href="{{ url_for('index') }}" class="button-link">Torna alla Dashboard</a>
     </div>
 
-    <!-- Pannello di Destra: Gestione Pagamenti -->
-    <div class="panel">
-        <h2>Gestione Pagamenti</h2>
-
-        <!-- Riepilogo finanziario per questa spesa -->
-        <div class="summary-cards">
-            <div class="card">
-                <h3>Costo Previsto</h3>
-                <p>€ {{ "%.2f"|format(spesa.importo) }}</p>
-            </div>
-            <div class="card">
-                <h3>Pagato</h3>
-                <p>€ {{ "%.2f"|format(totale_pagato) }}</p>
-            </div>
-            <div class="card remaining">
-                <h3>Residuo</h3>
-                <p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p>
-            </div>
+    <!-- 
+      CORREZIONE 2: Rimosso class="compact-form" per permettere
+      ai campi di disporsi correttamente in verticale.
+    -->
+    <form method="post" action="{{ url_for('edit_spesa', id=spesa.id) }}">
+        <div class="form-group">
+            <label for="descrizione">Descrizione</label>
+            <input type="text" name="descrizione" id="descrizione" value="{{ spesa.descrizione }}" required>
         </div>
+        <div class="form-group">
+            <label for="importo">Importo Previsto</label>
+            <input type="text" name="importo" id="importo" value="{{ spesa.importo }}" required>
+        </div>
+        <div class="form-group">
+            <label for="categoria">Categoria</label>
+            <select name="categoria" id="categoria" required>
+                {% for category in categories %}
+                <option value="{{ category }}" {% if category == spesa.categoria %}selected{% endif %}>
+                    {{ category }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit">Salva Dettagli</button>
+    </form>
 
-        <hr class="section-divider">
+    <hr class="section-divider">
 
-        <!-- Form per aggiungere un nuovo pagamento -->
-        <h4>Aggiungi Acconto</h4>
-        <form method="post" action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}">
-             <div class="form-group">
-                <label for="importo_pagato">Importo</label>
-                <input type="text" name="importo_pagato" id="importo_pagato" placeholder="Es. 500.00" required>
+    <!-- Riepilogo Finanziario (invariato) -->
+    <div class="summary-cards">
+        <div class="card"><h3>Costo Previsto</h3><p>€ {{ "%.2f"|format(spesa.importo) }}</p></div>
+        <div class="card"><h3>Totale Pagato</h3><p>€ {{ "%.2f"|format(totale_pagato) }}</p></div>
+        <div class="card remaining"><h3>Residuo da Pagare</h3><p>€ {{ "%.2f"|format(rimanente_da_pagare) }}</p></div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Aggiungi Pagamento e Storico (invariato) -->
+    <div class="flex-container">
+        <div class="panel">
+            <h4>Aggiungi Acconto/Pagamento</h4>
+            <form action="{{ url_for('add_pagamento', spesa_id=spesa.id) }}" method="post">
+                <div class="form-group"><label for="importo_pagato">Importo</label><input type="text" name="importo_pagato" id="importo_pagato" placeholder="Es. 500.00" required></div>
+                <div class="form-group"><label for="data_pagamento">Data</label><input type="date" name="data_pagamento" id="data_pagamento" required></div>
+                <div class="form-group"><label for="note">Note (Opzionale)</label><input type="text" name="note" id="note" placeholder="Es. Acconto"></div>
+                <button type="submit">Aggiungi Pagamento</button>
+            </form>
+        </div>
+        <div class="panel">
+            <h4>Storico Pagamenti</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Importo</th>
+                            <th>Note</th>
+                            <th class="actions-column">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pagamenti %}
+                        <tr>
+                            <td>{{ p.data_pagamento }}</td>
+                            <td>€ {{ "%.2f"|format(p.importo_pagato) }}</td>
+                            <td>{{ p.note or '-' }}</td>
+                            <td class="actions-column">
+                                <form action="{{ url_for('delete_pagamento', pagamento_id=p.id) }}" method="post" onsubmit="return confirm('Sei sicuro di voler eliminare questo pagamento?');">
+                                    <button type="submit" class="delete-btn">Elimina</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem 0;">Nessun pagamento registrato.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="form-group">
-                <label for="data_pagamento">Data</label>
-                <input type="date" name="data_pagamento" id="data_pagamento" required>
-            </div>
-             <div class="form-group">
-                <label for="note">Note</label>
-                <input type="text" name="note" id="note" placeholder="Es. Acconto">
-            </div>
-            <button type="submit">Aggiungi Pagamento</button>
-        </form>
-
-        <hr class="section-divider">
-
-        <!-- Tabella con lo storico dei pagamenti -->
-        <h4>Storico Pagamenti</h4>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Importo</th>
-                        <th>Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in pagamenti %}
-                    <tr>
-                        <td>{{ p.data_pagamento }}</td>
-                        <td>€ {{ "%.2f"|format(p.importo_pagato) }}</td>
-                        <td>{{ p.note or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 1.5rem 0;">Nessun pagamento registrato.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
-
 {% endblock %}

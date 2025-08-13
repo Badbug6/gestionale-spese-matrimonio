@@ -1,76 +1,72 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // --- GRAFICO A TORTA CON CHART.JS ---
-    const ctx = document.getElementById('category-chart');
-    if (!ctx) return; // Non eseguire se non siamo nella pagina giusta
+    const categoryCanvas = document.getElementById('category-chart');
+    const paymentsCanvas = document.getElementById('payments-over-time-chart');
+    if (!categoryCanvas || !paymentsCanvas) return;
 
-    // Colori personalizzati per il grafico
-    const chartColors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#E7E9ED', '#8D3F97', '#7E57C2', '#EA80FC'
-    ];
-
-    let categoryChart = new Chart(ctx, {
-        type: 'pie', // o 'doughnut' per il grafico a ciambella
-        data: {
-            labels: [], // Verranno riempiti dinamicamente
-            datasets: [{
-                label: 'Spese',
-                data: [], // Verranno riempiti dinamicamente
-                backgroundColor: chartColors,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderWidth: 1
-            }]
-        },
+    // --- Inizializzazione Grafici ---
+    const chartColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED', '#8D3F97', '#7E57C2', '#EA80FC'];
+    let categoryChart = new Chart(categoryCanvas, {
+        type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: chartColors }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#fff' } } } }
+    });
+    let paymentsOverTimeChart = new Chart(paymentsCanvas, {
+        type: 'line', data: { labels: [], datasets: [{ label: 'Totale Pagato', data: [], fill: true, backgroundColor: 'rgba(231, 60, 126, 0.2)', borderColor: 'rgba(231, 60, 126, 1)', tension: 0.3 }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        color: '#fff' // Colore del testo della legenda
-                    }
-                }
-            }
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } } },
+            plugins: { legend: { display: false } }
         }
     });
 
-    // --- FUNZIONI PER AGGIORNARE LA UI ---
+    // --- Logica per lo Switch dei Grafici ---
+    const btnPieChart = document.getElementById('btn-pie-chart');
+    const btnLineChart = document.getElementById('btn-line-chart');
+    const chartTitle = document.getElementById('chart-title');
+
+    btnPieChart.addEventListener('click', () => {
+        chartTitle.textContent = 'Spese per Categoria';
+        categoryCanvas.style.display = 'block';
+        paymentsCanvas.style.display = 'none';
+        btnPieChart.classList.add('active');
+        btnLineChart.classList.remove('active');
+    });
+
+    btnLineChart.addEventListener('click', () => {
+        chartTitle.textContent = 'Andamento Pagamenti Mensili';
+        categoryCanvas.style.display = 'none';
+        paymentsCanvas.style.display = 'block';
+        btnPieChart.classList.remove('active');
+        btnLineChart.classList.add('active');
+    });
+
+    // --- Funzioni di Aggiornamento UI ---
     function updateUI(state) {
-        updateChart(state.spese_per_categoria);
+        // Aggiorna sempre entrambi i grafici, anche se uno è nascosto
+        categoryChart.data.labels = Object.keys(state.spese_per_categoria);
+        categoryChart.data.datasets[0].data = Object.values(state.spese_per_categoria);
+        categoryChart.update();
+
+        paymentsOverTimeChart.data.labels = state.pagamenti_mensili.labels;
+        paymentsOverTimeChart.data.datasets[0].data = state.pagamenti_mensili.data;
+        paymentsOverTimeChart.update();
+        
         updateTable(state.spese);
         updateSummaryCards(state);
     }
     
-    function updateChart(spesePerCategoria) {
-        const labels = Object.keys(spesePerCategoria);
-        const data = Object.values(spesePerCategoria);
-        
-        categoryChart.data.labels = labels;
-        categoryChart.data.datasets[0].data = data;
-        categoryChart.update();
-    }
-
     function updateTable(spese) {
         const tableBody = document.getElementById('spese-table-body');
-        if (!tableBody) return;
-        tableBody.innerHTML = ''; // Svuota la tabella attuale
-
+        tableBody.innerHTML = '';
         spese.forEach(spesa => {
-            const row = `
+            tableBody.innerHTML += `
                 <tr id="spesa-${spesa.id}">
-                    <td><a href="/spesa/${spesa.id}">${spesa.descrizione}</a></td>
+                    <td><a href="/edit/${spesa.id}">${spesa.descrizione}</a></td>
                     <td>€ ${parseFloat(spesa.importo).toFixed(2)}</td>
                     <td>€ ${parseFloat(spesa.totale_pagato).toFixed(2)}</td>
                     <td>${spesa.categoria}</td>
                     <td>${spesa.username || 'N/D'}</td>
-                    <td class="action-buttons">
-                        <a href="/edit/${spesa.id}" class="edit-btn">Modifica</a>
-                        <button class="delete-btn" onclick="deleteExpense(${spesa.id})">Elimina</button>
-                    </td>
-                </tr>
-            `;
-            tableBody.innerHTML += row;
+                    <td class="action-buttons"><button class="delete-btn" onclick="deleteExpense(${spesa.id})">Elimina</button></td>
+                </tr>`;
         });
     }
     
@@ -81,82 +77,41 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('.summary-cards .card:nth-child(4) p').textContent = `€ ${parseFloat(state.rimanente_previsto).toFixed(2)}`;
     }
 
-    // --- GESTIONE FORM AGGIUNGI SPESA ---
+    // --- Inizializzazione e Gestione Form ---
     const expenseForm = document.getElementById('expense-form');
-    if (expenseForm) {
-        expenseForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            
-            const descrizione = document.getElementById('form-descrizione').value;
-            const importo = document.getElementById('form-importo').value;
-            const categoria = document.getElementById('form-categoria').value;
-
-            if (!descrizione || !importo || !categoria) {
-                alert('Tutti i campi sono obbligatori!');
-                return;
-            }
-
-            const response = await fetch('/api/add_expense', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ descrizione, importo, categoria })
-            });
-
-            if (response.ok) {
-                const newState = await response.json();
-                updateUI(newState);
-                expenseForm.reset(); // Pulisce il form
-            } else {
-                const error = await response.json();
-                alert(`Errore: ${error.error}`);
-            }
+    expenseForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            descrizione: document.getElementById('form-descrizione').value,
+            importo: document.getElementById('form-importo').value,
+            categoria: document.getElementById('form-categoria').value,
+        };
+        const response = await fetch('/api/add_expense', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
         });
-    }
+        if (response.ok) {
+            updateUI(await response.json());
+            expenseForm.reset();
+        } else {
+            alert(`Errore: ${(await response.json()).error}`);
+        }
+    });
     
-    // Inizializza la UI con i dati passati dal server
     if (typeof initialState !== 'undefined') {
         updateUI(initialState);
     }
 });
 
-// --- FUNZIONE PER ELIMINARE UNA SPESA ---
-// La definiamo fuori dall'evento DOMContentLoaded per renderla globale
 async function deleteExpense(id) {
-    if (!confirm('Sei sicuro di voler eliminare questa spesa?')) {
-        return;
-    }
-
-    const response = await fetch(`/api/delete_expense/${id}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
-
+    if (!confirm('Sei sicuro di voler eliminare questa spesa?')) return;
+    const response = await fetch(`/api/delete_expense/${id}`, { method: 'POST' });
     if (response.ok) {
-        const newState = await response.json();
-        // Richiamiamo le funzioni di aggiornamento
-        document.getElementById(`spesa-${id}`).remove(); // Rimuove la riga dalla tabella per un feedback immediato
-        
-        // Ricostruiamo la UI con i dati aggiornati
-        const chartCtx = document.getElementById('category-chart').getContext('2d');
-        let chart = Chart.getChart(chartCtx); // Recupera l'istanza del grafico
-        
-        const labels = Object.keys(newState.spese_per_categoria);
-        const data = Object.values(newState.spese_per_categoria);
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = data;
-        chart.update();
-
-        document.querySelector('.summary-cards .card:nth-child(1) p').textContent = `€ ${parseFloat(newState.budget_totale).toFixed(2)}`;
-        document.querySelector('.summary-cards .card:nth-child(2) p').textContent = `€ ${parseFloat(newState.speso_totale_previsto).toFixed(2)}`;
-        document.querySelector('.summary-cards .card:nth-child(3) p').textContent = `€ ${parseFloat(newState.speso_totale_effettivo).toFixed(2)}`;
-        document.querySelector('.summary-cards .card:nth-child(4) p').textContent = `€ ${parseFloat(newState.rimanente_previsto).toFixed(2)}`;
-
+        document.getElementById('spese-table-body').innerHTML = ''; // Svuota e lascia che updateUI ricostruisca
+        // Richiamare la funzione di aggiornamento UI definita nel blocco DOMContentLoaded
+        // Poiché non possiamo accedervi direttamente, potremmo dover ricaricare i dati o ristrutturare leggermente il codice.
+        // Per semplicità, in questo caso, ricarichiamo la pagina per vedere le modifiche.
+        location.reload(); 
     } else {
-        const error = await response.json();
-        alert(`Errore: ${error.error}`);
+        alert(`Errore: ${(await response.json()).error}`);
     }
 }
