@@ -2,3 +2,4 @@ flask
 waitress
 Flask-Mail
 APScheduler
+pytest

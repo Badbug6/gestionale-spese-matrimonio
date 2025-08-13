@@ -1,10 +1,12 @@
 import os
 import sqlite3
 from datetime import date, timedelta, datetime
+import time
 
 from flask import (Flask, flash, g, jsonify, redirect, render_template, request,
-                   session, url_for)
+                   session, url_for, send_from_directory) # Aggiunto send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename # Aggiunto per la sicurezza dei nomi file
 from waitress import serve
 
 from flask_mail import Mail, Message
@@ -13,6 +15,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 app = Flask(__name__)
 app.secret_key = 'la-mia-chiave-super-segreta-per-il-matrimonio-cambiami'
 DATABASE = 'wedding.db'
+
+# --- NUOVA CONFIGURAZIONE PER L'UPLOAD ---
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Assicurati che la cartella esista
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 app.config.update(
     MAIL_SERVER='', MAIL_PORT=587, MAIL_USERNAME='', MAIL_PASSWORD='',
@@ -26,7 +35,9 @@ scheduler = BackgroundScheduler(daemon=True)
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
+        # Usa la configurazione dell'app, che può essere cambiata dai test
+        db_path = app.config.get("DATABASE", DATABASE)
+        db = g._database = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
     return db
 
@@ -38,6 +49,7 @@ def close_connection(exception):
 
 def create_tables(db):
     cursor = db.cursor()
+    # ... (tabelle esistenti)
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL, email TEXT UNIQUE NOT NULL, is_admin INTEGER DEFAULT 0)''')
@@ -58,9 +70,21 @@ def create_tables(db):
                         FOREIGN KEY(spesa_id) REFERENCES spese(id) ON DELETE CASCADE,
                         FOREIGN KEY(scadenza_associata_id) REFERENCES scadenze(id) ON DELETE SET NULL
                     )''')
+    
+    # --- NUOVA TABELLA PER GLI ALLEGATI ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS allegati (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        spesa_id INTEGER NOT NULL,
+                        original_filename TEXT NOT NULL,
+                        saved_filename TEXT NOT NULL UNIQUE,
+                        upload_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(spesa_id) REFERENCES spese(id) ON DELETE CASCADE
+                    )''')
     db.commit()
 
-# --- FUNZIONI DI SUPPORTO ---
+
+# --- FUNZIONI DI SUPPORTO (invariate) ---
+# ... (get_app_state, get_user_by_username, get_user_by_id, send_email, check_and_send_reminders)
 def get_app_state():
     db = get_db()
     try:
@@ -129,32 +153,7 @@ def check_and_send_reminders():
         return f"Promemoria inviato a {len(users)} utenti per {len(scadenze)} scadenze."
 
 # --- ROUTES ---
-@app.route('/scadenza/toggle/<int:id>')
-def toggle_scadenza(id):
-    if not session.get('user_id'): return redirect(url_for('login'))
-    db = get_db()
-    scadenza = db.execute("SELECT * FROM scadenze WHERE id = ?", (id,)).fetchone()
-    if scadenza:
-        nuovo_stato = 'Completato' if scadenza['stato'] == 'Da Fare' else 'Da Fare'
-        db.execute("UPDATE scadenze SET stato = ? WHERE id = ?", (nuovo_stato, id))
-        if scadenza['spesa_associata_id'] and scadenza['importo_scadenza']:
-            spesa_id, importo_pagamento = scadenza['spesa_associata_id'], scadenza['importo_scadenza']
-            if nuovo_stato == 'Completato':
-                pagamento_esistente = db.execute("SELECT id FROM pagamenti WHERE scadenza_associata_id = ?", (id,)).fetchone()
-                if not pagamento_esistente:
-                    db.execute(
-                        "INSERT INTO pagamenti (spesa_id, importo_pagato, data_pagamento, note, scadenza_associata_id) VALUES (?, ?, ?, ?, ?)",
-                        # --- CORREZIONE APPLICATA QUI ---
-                        (spesa_id, importo_pagamento, date.today().isoformat(), f"Pagamento da scadenza: {scadenza['descrizione']}", id)
-                    )
-                    flash(f"Pagamento di €{importo_pagamento:.2f} registrato.", 'success')
-            elif nuovo_stato == 'Da Fare':
-                db.execute("DELETE FROM pagamenti WHERE scadenza_associata_id = ?", (id,))
-                flash(f"Pagamento associato alla scadenza '{scadenza['descrizione']}' annullato.", 'info')
-        db.commit()
-    return redirect(url_for('scadenzario'))
-
-# ... (tutte le altre route sono corrette e invariate)
+# ... (la maggior parte delle route è invariata)
 @app.route('/')
 def index():
     if not os.path.exists(DATABASE): return redirect(url_for('create_admin'))
@@ -242,8 +241,7 @@ def scadenzario():
 @app.route('/scadenza/add', methods=['POST'])
 def add_scadenza():
     if not session.get('user_id'): return redirect(url_for('login'))
-    descrizione = request.form['descrizione']
-    data_scadenza = request.form['data_scadenza']
+    descrizione, data_scadenza = request.form['descrizione'], request.form['data_scadenza']
     spesa_id = request.form.get('spesa_associata_id')
     importo_str = request.form.get('importo_scadenza', '').strip().replace(',', '.')
     importo_scadenza = float(importo_str) if importo_str else None
@@ -252,6 +250,28 @@ def add_scadenza():
                (descrizione, data_scadenza, importo_scadenza, spesa_id if spesa_id else None))
     db.commit()
     flash('Scadenza aggiunta!', 'success')
+    return redirect(url_for('scadenzario'))
+
+@app.route('/scadenza/toggle/<int:id>')
+def toggle_scadenza(id):
+    if not session.get('user_id'): return redirect(url_for('login'))
+    db = get_db()
+    scadenza = db.execute("SELECT * FROM scadenze WHERE id = ?", (id,)).fetchone()
+    if scadenza:
+        nuovo_stato = 'Completato' if scadenza['stato'] == 'Da Fare' else 'Da Fare'
+        db.execute("UPDATE scadenze SET stato = ? WHERE id = ?", (nuovo_stato, id))
+        if scadenza['spesa_associata_id'] and scadenza['importo_scadenza']:
+            spesa_id, importo_pagamento = scadenza['spesa_associata_id'], scadenza['importo_scadenza']
+            if nuovo_stato == 'Completato':
+                pagamento_esistente = db.execute("SELECT id FROM pagamenti WHERE scadenza_associata_id = ?", (id,)).fetchone()
+                if not pagamento_esistente:
+                    db.execute("INSERT INTO pagamenti (spesa_id, importo_pagato, data_pagamento, note, scadenza_associata_id) VALUES (?, ?, ?, ?, ?)",
+                               (spesa_id, importo_pagamento, date.today().isoformat(), f"Pagamento da scadenza: {scadenza['descrizione']}", id))
+                    flash(f"Pagamento di €{importo_pagamento:.2f} registrato.", 'success')
+            elif nuovo_stato == 'Da Fare':
+                db.execute("DELETE FROM pagamenti WHERE scadenza_associata_id = ?", (id,))
+                flash(f"Pagamento associato alla scadenza '{scadenza['descrizione']}' annullato.", 'info')
+        db.commit()
     return redirect(url_for('scadenzario'))
 
 @app.route('/scadenza/delete/<int:id>')
@@ -391,33 +411,37 @@ def delete_category(id):
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_spesa(id):
-    if not session.get('user_id'):
-        return redirect(url_for('login'))
+    if not session.get('user_id'): return redirect(url_for('login'))
     db = get_db()
     spesa = db.execute("SELECT * FROM spese WHERE id = ?", (id,)).fetchone()
     if not spesa:
         flash("Spesa non trovata.", "error")
         return redirect(url_for('index'))
+    
+    # AGGIUNTA: Carica anche gli allegati per questa spesa
+    allegati = db.execute("SELECT * FROM allegati WHERE spesa_id = ? ORDER BY upload_timestamp DESC", (id,)).fetchall()
+    
     pagamenti = db.execute("SELECT * FROM pagamenti WHERE spesa_id = ? ORDER BY data_pagamento DESC", (id,)).fetchall()
     totale_pagato = sum(p['importo_pagato'] for p in pagamenti)
     rimanente_da_pagare = spesa['importo'] - totale_pagato
+    
     if request.method == 'POST':
         if 'descrizione' in request.form:
-            descrizione = request.form['descrizione']
-            importo_str = request.form.get('importo', '0').strip().replace(',', '.')
-            categoria = request.form['categoria']
+            descrizione, importo_str, categoria = request.form['descrizione'], request.form.get('importo', '0').strip().replace(',', '.'), request.form['categoria']
             try:
                 importo = float(importo_str)
             except ValueError:
                 flash("L'importo inserito non è un numero valido.", 'error')
-                categories = [row['name'] for row in db.execute("SELECT name FROM categories ORDER BY name").fetchall()]
-                return render_template('edit.html', spesa=spesa, categories=categories, pagamenti=pagamenti, totale_pagato=totale_pagato, rimanente_da_pagare=rimanente_da_pagare, user=get_user_by_id(session.get('user_id')))
+                return redirect(url_for('edit_spesa', id=id))
             db.execute("UPDATE spese SET descrizione = ?, importo = ?, categoria = ? WHERE id = ?", (descrizione, importo, categoria, id))
             db.commit()
             flash('Spesa aggiornata con successo!', 'success')
             return redirect(url_for('edit_spesa', id=id))
+            
     categories = [row['name'] for row in db.execute("SELECT name FROM categories ORDER BY name").fetchall()]
-    return render_template('edit.html', spesa=spesa, categories=categories, pagamenti=pagamenti, totale_pagato=totale_pagato, rimanente_da_pagare=rimanente_da_pagare, user=get_user_by_id(session.get('user_id')))
+    return render_template('edit.html', spesa=spesa, categories=categories, pagamenti=pagamenti, 
+                           totale_pagato=totale_pagato, rimanente_da_pagare=rimanente_da_pagare, 
+                           allegati=allegati, user=get_user_by_id(session.get('user_id')))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -490,6 +514,64 @@ def test_reminder():
     status_message = check_and_send_reminders()
     flash(f"Test dei promemoria eseguito. Risultato: {status_message}", 'success')
     return redirect(url_for('settings'))
+
+# --- NUOVE ROUTE PER GLI ALLEGATI ---
+@app.route('/spesa/<int:spesa_id>/upload', methods=['POST'])
+def upload_file(spesa_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if 'file' not in request.files:
+        flash('Nessun file selezionato.', 'error')
+        return redirect(url_for('edit_spesa', id=spesa_id))
+    file = request.files['file']
+    if file.filename == '':
+        flash('Nessun file selezionato.', 'error')
+        return redirect(url_for('edit_spesa', id=spesa_id))
+    if file:
+        original_filename = secure_filename(file.filename)
+        # Crea un nome file unico per evitare sovrascritture
+        saved_filename = f"{int(time.time())}_{original_filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], saved_filename))
+        
+        db = get_db()
+        db.execute("INSERT INTO allegati (spesa_id, original_filename, saved_filename) VALUES (?, ?, ?)",
+                   (spesa_id, original_filename, saved_filename))
+        db.commit()
+        flash('File caricato con successo!', 'success')
+    return redirect(url_for('edit_spesa', id=spesa_id))
+
+@app.route('/uploads/<path:filename>')
+def serve_uploaded_file(filename):
+    if 'user_id' not in session:
+        return "Non autorizzato", 403
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/allegato/delete/<int:allegato_id>', methods=['POST'])
+def delete_allegato(allegato_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    allegato = db.execute("SELECT * FROM allegati WHERE id = ?", (allegato_id,)).fetchone()
+    
+    if allegato:
+        spesa_id = allegato['spesa_id']
+        # Elimina il file fisico dal server
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], allegato['saved_filename']))
+        except OSError as e:
+            print(f"Errore durante l'eliminazione del file: {e}")
+            flash("Errore: impossibile eliminare il file dal server.", "error")
+        
+        # Elimina il record dal database
+        db.execute("DELETE FROM allegati WHERE id = ?", (allegato_id,))
+        db.commit()
+        flash('Allegato eliminato con successo.', 'success')
+        return redirect(url_for('edit_spesa', id=spesa_id))
+        
+    flash("Allegato non trovato.", "error")
+    return redirect(url_for('index'))
+
 
 # --- AVVIO APP ---
 if __name__ == '__main__':

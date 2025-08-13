@@ -183,10 +183,10 @@ Per attivare il debugger di Flask, imposta la variabile d'ambiente `FLASK_DEBUG`
 
 ## 🛣️ Roadmap e Contributi
 
--   [ ] **Upload di File:** Caricare contratti/ricevute per ogni spesa.
+-   [X] **Upload di File:** Caricare contratti/ricevute per ogni spesa.
 -   [ ] **Gestione Invitati:** Una nuova sezione per tracciare gli invitati, le conferme e la disposizione dei tavoli.
 -   [X] **Dashboard Migliorata:** Aggiungere più grafici (es. andamento dei pagamenti nel tempo).
--   [ ] **Test Unitari e di Integrazione:** Aumentare la copertura dei test.
+-   [X] **Test Unitari e di Integrazione:** Aumentare la copertura dei test.
 
 I contributi sono benvenuti! Sentiti libero di aprire una issue o inviare una pull request.
 
