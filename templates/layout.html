@@ -2,56 +2,81 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Gestionale Matrimonio{% endblock %}</title>
     
-    <!-- Importazione del font Poppins da Google Fonts -->
+    <!-- Meta Tag Fondamentali per PWA e Responsive Design -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#4a00e0">
+
+    <!-- Meta Tag Specifici per l'esperienza "App" su iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wedding Planner">
+    
+    <!-- Icona Principale per iOS -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512x512.png') }}">
+    
+    <!-- 
+      UNICO LINK PER LA SPLASH SCREEN DI DEBUG
+      Testiamo solo con un modello di iPhone comune (es. 13/14 Pro)
+    -->
+    <link href="{{ url_for('static', filename='splashscreens/iPhone_14_Plus_portrait.png') }}" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" rel="apple-touch-startup-image" />
+    
+    <title>{% block title %}Wedding Planner{% endblock %}</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Includiamo la libreria Chart.js per i grafici -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <header class="main-header">
-        <h1><a href="{{ url_for('index') }}">Wedding Planner</a></h1>
-        <nav>
-            {% if user %}
-                <a href="{{ url_for('index') }}">Dashboard</a>
-                <a href="{{ url_for('scadenzario') }}">Scadenzario</a>
-                <a href="{{ url_for('categories_page') }}">Categorie</a>
-                {% if user.is_admin %}
-                    <a href="{{ url_for('manage_users') }}">Gestione Utenti</a>
-                    <a href="{{ url_for('settings') }}">Impostazioni</a>
+    <div class="page-wrapper">
+        <header class="main-header">
+            <h1><a href="{{ url_for('index') }}">Wedding Planner</a></h1>
+            <nav>
+                {% if user %}
+                    <a href="{{ url_for('index') }}">Dashboard</a>
+                    <a href="{{ url_for('scadenzario') }}">Scadenzario</a>
+                    <a href="{{ url_for('categories_page') }}">Categorie</a>
+                    {% if user.is_admin %}
+                        <a href="{{ url_for('manage_users') }}">Utenti</a>
+                        <a href="{{ url_for('settings') }}">Impostazioni</a>
+                    {% endif %}
+                    <span>Ciao, {{ user.username }}!</span>
+                    <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
                 {% endif %}
-                <span>Ciao, {{ user.username }}!</span>
-                <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
-            {% endif %}
-        </nav>
-    </header>
+            </nav>
+        </header>
 
-    <main>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
-                {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        
-        {% block content %}{% endblock %}
-    </main>
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </main>
 
-    <footer>
-        <p>Gestionale Spese Matrimonio &copy; 2024</p>
-    </footer>
+        <footer>
+            <p>Gestionale Spese Matrimonio &copy; 2024</p>
+        </footer>
+    </div>
 
     {% block scripts %}{% endblock %}
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}");
+        }
+    </script>
 </body>
 </html>

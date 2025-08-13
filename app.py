@@ -585,7 +585,7 @@ if __name__ == '__main__':
         print("Scheduler in attesa del riavvio del reloader Werkzeug.")
     if is_debug:
         print(">>> AVVIO IN MODALITÀ SVILUPPO (DEBUG) <<<")
-        app.run(host='127.0.0.1', port=5001, debug=True)
+        app.run(host='0.0.0.0W', port=5001, debug=True)
     else:
         print(f">>> AVVIO IN MODALITÀ PRODUZIONE CON WAITRESS SU http://127.0.0.1:5001 <<<")
         serve(app, host='0.0.0.0', port=5001)
