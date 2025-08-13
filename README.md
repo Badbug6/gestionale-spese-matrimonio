@@ -1,9 +1,13 @@
 ```markdown
 💒 Gestionale Spese Matrimonio: Il Tuo Wedding Planner Personale
 
-Dite addio a fogli di calcolo complicati e note sparse. Questa applicazione web completa è stata progettata per essere il centro di controllo definitivo per la pianificazione finanziaria, logistica e documentale del vostro matrimonio.
+Dite addio a fogli di calcolo complicati e note sparse.
+Questa applicazione web completa è stata progettata per essere il centro di controllo
+definitivo per la pianificazione finanziaria, logistica e documentale del vostro matrimonio.
 
-Costruita con un backend robusto in **Python/Flask** e un frontend dinamico in **JavaScript**, l'applicazione offre un'esperienza utente fluida e moderna, racchiusa in un design elegante "glassmorphism" con uno sfondo animato. È pensata per essere intuitiva per gli utenti finali e al tempo stesso chiara, testata e manutenibile per gli sviluppatori.
+Costruita con un backend robusto in **Python/Flask** e un frontend dinamico in **JavaScript**, l'applicazione offre un'esperienza utente fluida e moderna,
+racchiusa in un design elegante "glassmorphism" con uno sfondo animato.
+È pensata per essere intuitiva per gli utenti finali e al tempo stesso chiara, testata e manutenibile per gli sviluppatori.
 
 
 📜 Indice
